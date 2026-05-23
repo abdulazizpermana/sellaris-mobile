@@ -1,0 +1,71 @@
+// lib/features/product/data/repositories/product_repository_impl.dart
+
+import 'dart:io';
+import 'package:sellari_umkm_frontend/features/auth/data/models/product_model.dart';
+
+import '../../domain/repositories/product_repository.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/constants/app_constants.dart';
+
+class ProductRepositoryImpl implements ProductRepository {
+  final ApiClient _api;
+  ProductRepositoryImpl(this._api);
+
+  @override
+  Future<List<ProductModel>> getProducts() async {
+    final res = await _api.get(AppConstants.products);
+    final list = res.data['data'] as List;
+    return list.map((j) => ProductModel.fromJson(j)).toList();
+  }
+
+  @override
+  Future<ProductModel> getProduct(int id) async {
+    final res = await _api.get('${AppConstants.products}/$id');
+    return ProductModel.fromJson(res.data['data']);
+  }
+
+  @override
+  Future<ProductModel> createProduct({
+    required String productName,
+    required double price,
+    required int stock,
+    String? description,
+    String? targetMarket,
+    File? image,
+  }) async {
+    final fields = <String, String>{
+      'product_name': productName,
+      'price': price.toString(),
+      'stock': stock.toString(),
+      'description': description ?? '',
+      'target_market': targetMarket ?? '',
+    };
+
+    final res = await _api.postMultipart(
+      AppConstants.products,
+      fields: fields,
+      imageFile: image,
+    );
+    return ProductModel.fromJson(res.data['data']);
+  }
+
+  @override
+  Future<ProductModel> updateProduct(int id, Map<String, dynamic> data) async {
+    final res = await _api.put('${AppConstants.products}/$id', body: data);
+    return ProductModel.fromJson(res.data['data']);
+  }
+
+  @override
+  Future<void> deleteProduct(int id) async {
+    await _api.delete('${AppConstants.products}/$id');
+  }
+
+  @override
+  Future<AiContent> generateAiContent(int productId) async {
+    final res = await _api.post(
+      AppConstants.aiGenerate,
+      body: {'product_id': productId, 'type': 'caption'},
+    );
+    return AiContent.fromJson(res.data['data']);
+  }
+}
