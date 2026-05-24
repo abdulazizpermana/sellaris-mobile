@@ -9,13 +9,17 @@ import 'package:sellari_umkm_frontend/core/di/service_locator.dart';
 import 'package:sellari_umkm_frontend/core/theme/app_theme.dart';
 
 class AiStudioPage extends StatelessWidget {
-  const AiStudioPage({super.key});
+  final String? preSelectedFeature;
+
+  const AiStudioPage({super.key, this.preSelectedFeature});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider<ProductBloc>(
       create: (_) => sl<ProductBloc>()..add(ProductLoadRequested()),
-      child: const _AiStudioView(),
+      child: _AiStudioView(
+        preSelectedFeature: preSelectedFeature,
+      ),
     );
   }
 }
@@ -103,15 +107,41 @@ extension AiStudioFeatureLabel on AiStudioFeature {
 
 // ─── View ─────────────────────────────────────────────────────
 class _AiStudioView extends StatefulWidget {
-  const _AiStudioView();
+  final String? preSelectedFeature;
+
+  const _AiStudioView({this.preSelectedFeature});
 
   @override
   State<_AiStudioView> createState() => _AiStudioViewState();
 }
 
 class _AiStudioViewState extends State<_AiStudioView> {
-  AiStudioFeature _selectedFeature = AiStudioFeature.caption;
+  late AiStudioFeature _selectedFeature;
   ProductModel? _selectedProduct;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedFeature = _mapToFeature(widget.preSelectedFeature);
+  }
+
+  AiStudioFeature _mapToFeature(String? type) {
+    switch (type) {
+      case 'marketplace':
+        return AiStudioFeature.marketplace;
+      case 'promo':
+        return AiStudioFeature.promo;
+      case 'hashtag':
+        return AiStudioFeature.hashtags;
+      case 'smart_reply':
+        return AiStudioFeature.smartReply;
+      case 'translate':
+        return AiStudioFeature.translation;
+      case 'caption':
+      default:
+        return AiStudioFeature.caption;
+    }
+  }
 
   void _onGenerate(BuildContext context) {
     if (_selectedProduct == null) {

@@ -7,9 +7,11 @@ import '../../../../core/constants/route_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/shared_widgets.dart';
+import '../../../ai/presentation/pages/ai_studio_page.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../bloc/dashboard_bloc.dart';
 import '../../data/models/dashboard_model.dart';
+import '../../../dashboard/presentation/widgets/sellaris_score_card.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -121,10 +123,14 @@ class _DashboardView extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(14),
                                     ),
                                   ),
-                                  onPressed: () => Navigator.pushNamed(
-                                    context,
-                                    AppRoutes.aiStudio,
-                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const AiStudioPage(),
+                                      ),
+                                    );
+                                  },
                                   child: const Text('Generate Konten Sekarang'),
                                 ),
                               ],
@@ -141,12 +147,11 @@ class _DashboardView extends StatelessWidget {
                         color: Colors.white,
                       ),
                       onPressed: () => ctx.read<DashboardBloc>().add(
-                        DashboardLoadRequested(),
-                      ),
+                            DashboardLoadRequested(),
+                          ),
                     ),
                   ],
                 ),
-
                 if (state is DashboardLoading) ...[
                   SliverPadding(
                     padding: const EdgeInsets.all(16),
@@ -191,8 +196,8 @@ class _DashboardView extends StatelessWidget {
                     child: ErrorView(
                       message: state.message,
                       onRetry: () => ctx.read<DashboardBloc>().add(
-                        DashboardLoadRequested(),
-                      ),
+                            DashboardLoadRequested(),
+                          ),
                     ),
                   ),
                 ] else if (state is DashboardLoaded) ...[
@@ -246,63 +251,17 @@ class _DashboardView extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 18),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppColors.border),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 46,
-                                height: 46,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryLight,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: const Icon(
-                                  Icons.shield_rounded,
-                                  color: AppColors.primary,
-                                ),
+                        SellarisScoreCard(
+                          score: 82,
+                          onDetailTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('Fitur segera hadir! 🚀'),
+                                backgroundColor: AppColors.primary,
+                                behavior: SnackBarBehavior.floating,
                               ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Sellaris Score',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleMedium,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Produkmu siap jual 82%',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .headlineMedium
-                                          ?.copyWith(
-                                            color: AppColors.primary,
-                                            fontSize: 20,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'Berdasarkan foto produk, deskripsi, caption, hashtag, dan marketplace content.',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
                         const SizedBox(height: 18),
                         _DashboardActionRow(),
