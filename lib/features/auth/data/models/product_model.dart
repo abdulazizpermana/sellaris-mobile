@@ -26,11 +26,11 @@ class AiContent {
   });
 
   factory AiContent.fromJson(Map<String, dynamic> j) => AiContent(
-    id: _parseInt(j['id']),
-    type: j['type']?.toString() ?? 'caption',
-    content: j['content']?.toString() ?? '',
-    generatedAt: j['generated_at']?.toString(),
-  );
+        id: _parseInt(j['id']),
+        type: j['type']?.toString() ?? '',
+        content: j['content']?.toString() ?? '',
+        generatedAt: j['generated_at']?.toString(),
+      );
 }
 
 class ProductModel {
@@ -56,19 +56,19 @@ class ProductModel {
   });
 
   factory ProductModel.fromJson(Map<String, dynamic> j) => ProductModel(
-    id: _parseInt(j['id']),
-    productName: j['product_name']?.toString() ?? '',
-    price: _parseDouble(j['price']),
-    priceFormatted: j['price_formatted']?.toString() ?? '',
-    stock: _parseInt(j['stock']),
-    imageUrl: j['image_url']?.toString(),
-    description: j['description']?.toString(),
-    targetMarket: j['target_market']?.toString(),
-    isActive: j['is_active'] == null
-        ? true
-        : j['is_active'] == 1 || j['is_active'] == true,
-    aiContent: j['ai_content'] != null
-        ? AiContent.fromJson(j['ai_content'])
-        : null,
-  );
+        id: _parseInt(j['id']),
+        productName: j['product_name']?.toString() ?? '',
+        price: _parseDouble(j['price']),
+        priceFormatted: j['price_formatted']?.toString() ?? '',
+        stock: _parseInt(j['stock']),
+        imageUrl: j['image_url']?.toString(),
+        description: j['description']?.toString(),
+        targetMarket: j['target_market']?.toString(),
+        isActive: j['is_active'] == null
+            ? true
+            : j['is_active'] == 1 || j['is_active'] == true,
+        aiContent: j['ai_content'] != null
+            ? AiContent.fromJson(j['ai_content'])
+            : null,
+      );
 }

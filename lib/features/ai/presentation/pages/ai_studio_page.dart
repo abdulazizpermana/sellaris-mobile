@@ -153,6 +153,7 @@ class _AiStudioViewState extends State<_AiStudioView> {
                 builder: (_) => AiResultPage(
                   aiContent: state.aiContent,
                   productName: state.productName,
+                  selectedType: state.selectedType,
                 ),
               ),
             );

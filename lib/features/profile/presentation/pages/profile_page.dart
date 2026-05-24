@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sellari_umkm_frontend/core/constants/route_constants.dart';
 import 'package:sellari_umkm_frontend/core/theme/app_theme.dart';
-import 'package:sellari_umkm_frontend/core/theme/theme_cubit.dart';
 import 'package:sellari_umkm_frontend/features/auth/data/models/user_model.dart';
 import 'package:sellari_umkm_frontend/features/auth/presentation/bloc/auth_bloc.dart';
 
@@ -15,7 +14,6 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   bool _notificationsEnabled = true;
-  String _selectedLanguage = 'Indonesia';
   String _selectedTone = 'Friendly';
   String _selectedMarket = 'UMKM Lokal';
   String _selectedPlatform = 'Instagram';
@@ -24,12 +22,6 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     final userState = context.watch<AuthBloc>().state;
     final user = userState is AuthAuthenticated ? userState.user : null;
-    final themeMode = context.watch<ThemeCubit>().state;
-    final locale = context.watch<LocaleCubit>().state;
-    final isDarkMode = themeMode == ThemeMode.dark;
-    final selectedLanguage =
-        locale.languageCode == 'en' ? 'English' : 'Indonesia';
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Profil Bisnis'), elevation: 0),
@@ -40,10 +32,7 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 20),
           _buildSectionTitle('Preferensi'),
           const SizedBox(height: 12),
-          _buildPreferences(
-            isDarkMode: isDarkMode,
-            selectedLanguage: selectedLanguage,
-          ),
+          _buildPreferences(),
           const SizedBox(height: 20),
           _buildSectionTitle('AI Preferences'),
           const SizedBox(height: 12),
@@ -132,42 +121,9 @@ class _ProfilePageState extends State<ProfilePage> {
     return Text(title, style: Theme.of(context).textTheme.titleLarge);
   }
 
-  Widget _buildPreferences({
-    required bool isDarkMode,
-    required String selectedLanguage,
-  }) {
+  Widget _buildPreferences() {
     return Column(
       children: [
-        SwitchListTile(
-          value: isDarkMode,
-          title: const Text('Dark Mode'),
-          subtitle: const Text(
-            'Mode gelap menjaga tampilan premium di malam hari',
-          ),
-          thumbColor: WidgetStateProperty.resolveWith<Color?>(
-            (states) => AppColors.primary,
-          ),
-          onChanged: (value) async {
-            await context.read<ThemeCubit>().updateThemeMode(
-                  value ? ThemeMode.dark : ThemeMode.light,
-                );
-          },
-        ),
-        ListTile(
-          title: const Text('Bahasa'),
-          subtitle: Text(selectedLanguage),
-          trailing: const Icon(Icons.keyboard_arrow_right_rounded),
-          onTap: () => _showOptions(
-            title: 'Pilih Bahasa',
-            options: ['Indonesia', 'English'],
-            selected: selectedLanguage,
-            onSelected: (value) async {
-              final locale =
-                  value == 'English' ? const Locale('en') : const Locale('id');
-              await context.read<LocaleCubit>().updateLocale(locale);
-            },
-          ),
-        ),
         SwitchListTile(
           value: _notificationsEnabled,
           title: const Text('Notifikasi'),

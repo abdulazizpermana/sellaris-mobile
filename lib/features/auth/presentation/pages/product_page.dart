@@ -88,6 +88,7 @@ class _ProductViewState extends State<_ProductView> {
                 builder: (_) => AiResultPage(
                   aiContent: state.aiContent,
                   productName: state.productName,
+                  selectedType: state.selectedType,
                 ),
               ),
             );

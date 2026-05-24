@@ -78,10 +78,22 @@ class ProductActionSuccess extends ProductState {
 class ProductAiSuccess extends ProductState {
   final AiContent aiContent;
   final String productName;
+  final String selectedType;
   final List<ProductModel> products;
-  const ProductAiSuccess(this.aiContent, this.productName, this.products);
+
+  const ProductAiSuccess(
+    this.aiContent,
+    this.productName,
+    this.selectedType,
+    this.products,
+  );
+
   @override
-  List<Object?> get props => [aiContent, productName];
+  List<Object?> get props => [
+        aiContent,
+        productName,
+        selectedType,
+      ];
 }
 
 class ProductError extends ProductState {
@@ -158,7 +170,12 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         e.productId,
         type: e.type, // ← kirim type dari event
       );
-      emit(ProductAiSuccess(ai, e.productName, _products));
+      emit(ProductAiSuccess(
+        ai,
+        e.productName,
+        e.type,
+        _products,
+      ));
     } on ValidationException catch (ex) {
       emit(ProductError(_mapAiError(ex.message, ex.errors)));
     } on ApiException catch (ex) {
