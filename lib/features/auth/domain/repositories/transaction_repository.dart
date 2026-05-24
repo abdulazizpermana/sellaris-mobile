@@ -9,4 +9,5 @@ abstract class TransactionRepository {
     String? date,
   });
   Future<DailyReport> getDailyReport(String date);
+  Future<Map<String, dynamic>> getHistory({int page = 1});
 }

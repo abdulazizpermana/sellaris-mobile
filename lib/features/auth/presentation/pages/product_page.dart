@@ -7,7 +7,6 @@ import '../../../../core/constants/route_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/shared_widgets.dart';
-import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../bloc/product_bloc.dart';
 import '../../data/models/product_model.dart';
 import 'add_product_page.dart';
@@ -38,10 +37,8 @@ class _ProductViewState extends State<_ProductView> {
   String _sortBy = 'Newest';
   String _filter = 'Semua';
 
-  @override
-  void dispose() {
+  void _disposeControllers() {
     _searchController.dispose();
-    super.dispose();
   }
 
   @override
@@ -51,17 +48,6 @@ class _ProductViewState extends State<_ProductView> {
       appBar: AppBar(
         title: const Text('Produk Saya'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            onPressed: () {
-              context.read<AuthBloc>().add(AuthLogoutRequested());
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                AppRoutes.login,
-                (route) => false,
-              );
-            },
-          ),
           IconButton(
             icon: const Icon(Icons.add_rounded),
             onPressed: () async {
@@ -132,20 +118,18 @@ class _ProductViewState extends State<_ProductView> {
           final products = state is ProductLoaded
               ? state.products
               : state is ProductActionSuccess
-              ? state.products
-              : state is ProductAiSuccess
-              ? state.products
-              : <ProductModel>[];
+                  ? state.products
+                  : state is ProductAiSuccess
+                      ? state.products
+                      : <ProductModel>[];
 
           final filteredProducts = products.where((product) {
             final matchesSearch = product.productName.toLowerCase().contains(
-              _searchQuery.toLowerCase(),
-            );
-            final aiStatus = product.aiContent != null
-                ? 'AI Ready'
-                : 'Belum Generate';
-            final matchesFilter =
-                _filter == 'Semua' ||
+                  _searchQuery.toLowerCase(),
+                );
+            final aiStatus =
+                product.aiContent != null ? 'AI Ready' : 'Belum Generate';
+            final matchesFilter = _filter == 'Semua' ||
                 _filter == 'AI Ready' && aiStatus == 'AI Ready' ||
                 _filter == 'Belum Generate' && aiStatus == 'Belum Generate';
             return matchesSearch && matchesFilter;
@@ -262,7 +246,7 @@ class _ProductViewState extends State<_ProductView> {
         const SizedBox(width: 10),
         Expanded(
           child: DropdownButtonFormField<String>(
-            initialValue: _sortBy,
+            value: _sortBy,
             decoration: InputDecoration(
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -286,8 +270,12 @@ class _ProductViewState extends State<_ProductView> {
 
   void _generateAi(BuildContext ctx, ProductModel product) {
     ctx.read<ProductBloc>().add(
-      ProductAiGenerateRequested(product.id, product.productName),
-    );
+          ProductAiGenerateRequested(
+            product.id,
+            product.productName,
+            type: 'promo',
+          ),
+        );
   }
 
   void _confirmDelete(BuildContext ctx, ProductModel product) {
@@ -318,38 +306,38 @@ class _ProductViewState extends State<_ProductView> {
   }
 
   Widget _buildShimmer() => ListView.separated(
-    padding: const EdgeInsets.all(16),
-    itemCount: 5,
-    separatorBuilder: (_, _) => const SizedBox(height: 12),
-    itemBuilder: (_, _) => Container(
-      height: 100,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          const ShimmerBox(width: 68, height: 68, radius: 12),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                ShimmerBox(width: 140, height: 14),
-                SizedBox(height: 8),
-                ShimmerBox(width: 90, height: 12),
-                SizedBox(height: 6),
-                ShimmerBox(width: 70, height: 12),
-              ],
-            ),
+        padding: const EdgeInsets.all(16),
+        itemCount: 5,
+        separatorBuilder: (context, index) => const SizedBox(height: 12),
+        itemBuilder: (context, index) => Container(
+          height: 100,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
           ),
-        ],
-      ),
-    ),
-  );
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const ShimmerBox(width: 68, height: 68, radius: 12),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    ShimmerBox(width: 140, height: 14),
+                    SizedBox(height: 8),
+                    ShimmerBox(width: 90, height: 12),
+                    SizedBox(height: 6),
+                    ShimmerBox(width: 70, height: 12),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 }
 
 // ─── Product Card ─────────────────────────────────────────────
@@ -388,9 +376,9 @@ class _ProductCard extends StatelessWidget {
                       width: 68,
                       height: 68,
                       fit: BoxFit.cover,
-                      placeholder: (_, _) =>
+                      placeholder: (context, url) =>
                           const ShimmerBox(width: 68, height: 68, radius: 12),
-                      errorWidget: (_, _, _) => _placeholder(),
+                      errorWidget: (context, url, error) => _placeholder(),
                     )
                   : _placeholder(),
             ),
@@ -411,9 +399,9 @@ class _ProductCard extends StatelessWidget {
                   Text(
                     product.priceFormatted,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -476,12 +464,13 @@ class _ProductCard extends StatelessWidget {
   }
 
   Widget _placeholder() => Container(
-    width: 68,
-    height: 68,
-    decoration: BoxDecoration(
-      color: AppColors.primaryLight,
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: const Icon(Icons.image_outlined, color: AppColors.primary, size: 28),
-  );
+        width: 68,
+        height: 68,
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(Icons.image_outlined,
+            color: AppColors.primary, size: 28),
+      );
 }

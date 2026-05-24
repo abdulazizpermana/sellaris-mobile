@@ -32,26 +32,24 @@ class _RegisterPageState extends State<RegisterPage> {
     'Lainnya',
   ];
 
-  @override
-  void dispose() {
+  void _disposeControllers() {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _businessCtrl.dispose();
-    super.dispose();
   }
 
   void _submit(BuildContext ctx) {
     if (!_form.currentState!.validate()) return;
     ctx.read<AuthBloc>().add(
-      AuthRegisterRequested(
-        name: _nameCtrl.text.trim(),
-        email: _emailCtrl.text.trim(),
-        password: _passCtrl.text,
-        businessName: _businessCtrl.text.trim(),
-        category: _category,
-      ),
-    );
+          AuthRegisterRequested(
+            name: _nameCtrl.text.trim(),
+            email: _emailCtrl.text.trim(),
+            password: _passCtrl.text,
+            businessName: _businessCtrl.text.trim(),
+            category: _category,
+          ),
+        );
   }
 
   @override
@@ -160,7 +158,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 // Dropdown kategori
                 DropdownButtonFormField<String>(
-                  initialValue: _category,
+                  value: _category,
                   decoration: InputDecoration(
                     labelText: 'Kategori Usaha',
                     prefixIcon: const Icon(Icons.category_outlined, size: 20),
@@ -211,9 +209,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       child: Text(
                         'Masuk',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
                     ),
                   ],
@@ -227,16 +225,16 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Widget _sectionLabel(BuildContext ctx, String text) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    decoration: BoxDecoration(
-      color: AppColors.primaryLight,
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Text(
-      text,
-      style: Theme.of(
-        ctx,
-      ).textTheme.titleMedium?.copyWith(color: AppColors.primary),
-    ),
-  );
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          text,
+          style: Theme.of(
+            ctx,
+          ).textTheme.titleMedium?.copyWith(color: AppColors.primary),
+        ),
+      );
 }

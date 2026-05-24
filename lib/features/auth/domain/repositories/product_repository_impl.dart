@@ -1,8 +1,7 @@
 // lib/features/product/data/repositories/product_repository_impl.dart
 
 import 'dart:io';
-import 'package:sellari_umkm_frontend/features/auth/data/models/product_model.dart';
-
+import '../../data/models/product_model.dart';
 import '../../domain/repositories/product_repository.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -40,7 +39,6 @@ class ProductRepositoryImpl implements ProductRepository {
       'description': description ?? '',
       'target_market': targetMarket ?? '',
     };
-
     final res = await _api.postMultipart(
       AppConstants.products,
       fields: fields,
@@ -61,10 +59,16 @@ class ProductRepositoryImpl implements ProductRepository {
   }
 
   @override
-  Future<AiContent> generateAiContent(int productId) async {
+  Future<AiContent> generateAiContent(
+    int productId, {
+    String type = 'caption', // ← TAMBAHAN parameter type
+  }) async {
     final res = await _api.post(
       AppConstants.aiGenerate,
-      body: {'product_id': productId, 'type': 'caption'},
+      body: {
+        'product_id': productId,
+        'type': type, // ← kirim type ke API
+      },
     );
     return AiContent.fromJson(res.data['data']);
   }

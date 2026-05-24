@@ -19,11 +19,9 @@ class _LoginPageState extends State<LoginPage> {
   final _passCtrl = TextEditingController();
   bool _obscure = true;
 
-  @override
-  void dispose() {
+  void _disposeControllers() {
     _emailCtrl.dispose();
     _passCtrl.dispose();
-    super.dispose();
   }
 
   void _submit(BuildContext ctx) {

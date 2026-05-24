@@ -15,18 +15,23 @@ import 'features/auth/presentation/pages/transaction_page.dart';
 import 'features/ai/presentation/pages/ai_studio_page.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/product_bloc.dart';
+import 'features/transaction/presentation/pages/transaction_history_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('id_ID', null);
-  Intl.defaultLocale = 'id_ID';
+  await initializeDateFormatting('en_US', null);
   await setupLocator();
   final themeCubit = await ThemeCubit.load();
+  final localeCubit = await LocaleCubit.load();
+  Intl.defaultLocale =
+      localeCubit.state.languageCode == 'en' ? 'en_US' : 'id_ID';
 
   runApp(
     MultiBlocProvider(
       providers: [
         BlocProvider<ThemeCubit>.value(value: themeCubit),
+        BlocProvider<LocaleCubit>.value(value: localeCubit),
         BlocProvider<AuthBloc>(
           create: (_) => sl<AuthBloc>()..add(AuthCheckRequested()),
         ),
@@ -43,25 +48,36 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<ThemeCubit, ThemeMode>(
       builder: (context, themeMode) {
-        return MaterialApp(
-          title: 'Sellaris UMKM',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
-          themeMode: themeMode,
-          routes: {
-            AppRoutes.login: (_) => const LoginPage(),
-            AppRoutes.register: (_) => const RegisterPage(),
-            AppRoutes.home: (_) => const AppShell(),
-            AppRoutes.product: (_) => const ProductPage(),
-            AppRoutes.transaction: (_) => const TransactionPage(),
-            AppRoutes.aiStudio: (_) => const AiStudioPage(),
-            AppRoutes.addProduct: (_) => BlocProvider(
-              create: (_) => sl<ProductBloc>()..add(ProductLoadRequested()),
-              child: const AddProductPage(),
-            ),
+        return BlocBuilder<LocaleCubit, Locale>(
+          builder: (context, locale) {
+            Intl.defaultLocale =
+                locale.languageCode == 'en' ? 'en_US' : 'id_ID';
+
+            return MaterialApp(
+              title: 'Sellaris UMKM',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.light,
+              darkTheme: AppTheme.dark,
+              themeMode: themeMode,
+              locale: locale,
+              routes: {
+                AppRoutes.login: (_) => const LoginPage(),
+                AppRoutes.register: (_) => const RegisterPage(),
+                AppRoutes.home: (_) => const AppShell(),
+                AppRoutes.product: (_) => const ProductPage(),
+                AppRoutes.transaction: (_) => const TransactionPage(),
+                AppRoutes.transactionHistory: (_) =>
+                    const TransactionHistoryPage(),
+                AppRoutes.aiStudio: (_) => const AiStudioPage(),
+                AppRoutes.addProduct: (_) => BlocProvider(
+                      create: (_) =>
+                          sl<ProductBloc>()..add(ProductLoadRequested()),
+                      child: const AddProductPage(),
+                    ),
+              },
+              home: const AppEntry(),
+            );
           },
-          home: const AppEntry(),
         );
       },
     );

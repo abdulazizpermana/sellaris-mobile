@@ -1,10 +1,11 @@
 // lib/features/transaction/presentation/bloc/transaction_bloc.dart
 
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../core/network/api_client.dart';
 import '../../data/models/transaction_model.dart';
 import '../../domain/repositories/transaction_repository.dart';
-import '../../../../core/network/api_client.dart';
 
 // Events
 abstract class TransactionEvent extends Equatable {
@@ -28,8 +29,17 @@ class TransactionCreateRequested extends TransactionEvent {
 class TransactionReportRequested extends TransactionEvent {
   final String date;
   const TransactionReportRequested(this.date);
+
   @override
   List<Object?> get props => [date];
+}
+
+class TransactionHistoryRequested extends TransactionEvent {
+  final int page;
+  const TransactionHistoryRequested({this.page = 1});
+
+  @override
+  List<Object?> get props => [page];
 }
 
 // States
@@ -54,8 +64,24 @@ class TransactionSuccess extends TransactionState {
 class TransactionReportLoaded extends TransactionState {
   final DailyReport report;
   const TransactionReportLoaded(this.report);
+
   @override
   List<Object?> get props => [report];
+}
+
+class TransactionHistoryLoaded extends TransactionState {
+  final List<TransactionModel> transactions;
+  final int currentPage;
+  final int lastPage;
+
+  const TransactionHistoryLoaded({
+    required this.transactions,
+    required this.currentPage,
+    required this.lastPage,
+  });
+
+  @override
+  List<Object?> get props => [transactions, currentPage, lastPage];
 }
 
 class TransactionError extends TransactionState {
@@ -71,6 +97,7 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
   TransactionBloc(this._repo) : super(TransactionInitial()) {
     on<TransactionCreateRequested>(_onCreate);
     on<TransactionReportRequested>(_onReport);
+    on<TransactionHistoryRequested>(_onHistory);
   }
 
   Future<void> _onCreate(
@@ -105,6 +132,33 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
       emit(TransactionError(ex.message));
     } catch (_) {
       emit(const TransactionError('Gagal memuat laporan'));
+    }
+  }
+
+  Future<void> _onHistory(
+    TransactionHistoryRequested e,
+    Emitter<TransactionState> emit,
+  ) async {
+    emit(TransactionLoading());
+    try {
+      final res = await _repo.getHistory(page: e.page);
+      final data = (res['data'] as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map(TransactionModel.fromJson)
+          .toList();
+      final meta = res['meta'] as Map<String, dynamic>? ?? {};
+      emit(
+        TransactionHistoryLoaded(
+          transactions: data,
+          currentPage:
+              int.tryParse(meta['current_page']?.toString() ?? '1') ?? 1,
+          lastPage: int.tryParse(meta['last_page']?.toString() ?? '1') ?? 1,
+        ),
+      );
+    } on ApiException catch (ex) {
+      emit(TransactionError(ex.message));
+    } catch (_) {
+      emit(const TransactionError('Gagal memuat riwayat transaksi'));
     }
   }
 }

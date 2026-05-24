@@ -16,5 +16,8 @@ abstract class ProductRepository {
   });
   Future<ProductModel> updateProduct(int id, Map<String, dynamic> data);
   Future<void> deleteProduct(int id);
-  Future<AiContent> generateAiContent(int productId);
+  Future<AiContent> generateAiContent(
+    int productId, {
+    String type, // ← TAMBAHAN parameter type
+  });
 }

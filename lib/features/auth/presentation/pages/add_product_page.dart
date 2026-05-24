@@ -25,14 +25,12 @@ class _AddProductPageState extends State<AddProductPage> {
   File? _image;
   bool _isPickingImage = false;
 
-  @override
-  void dispose() {
+  void _disposeControllers() {
     _nameCtrl.dispose();
     _priceCtrl.dispose();
     _stockCtrl.dispose();
     _descCtrl.dispose();
     _targetCtrl.dispose();
-    super.dispose();
   }
 
   Future<void> _pickImage() async {

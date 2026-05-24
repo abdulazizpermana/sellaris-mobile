@@ -37,11 +37,13 @@ class _TransactionPageState extends State<TransactionPage> {
     try {
       final repo = sl<ProductRepository>();
       final list = await repo.getProducts();
+      if (!mounted) return;
       setState(() {
         _products = list;
         _loadingProducts = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() => _loadingProducts = false);
     }
   }
@@ -76,13 +78,13 @@ class _TransactionPageState extends State<TransactionPage> {
       return;
     }
     ctx.read<TransactionBloc>().add(
-      TransactionCreateRequested(
-        productId: _selected!.id,
-        quantity: qty,
-        notes: _notesCtrl.text.trim(),
-        date: DateFormat('yyyy-MM-dd').format(_date),
-      ),
-    );
+          TransactionCreateRequested(
+            productId: _selected!.id,
+            quantity: qty,
+            notes: _notesCtrl.text.trim(),
+            date: DateFormat('yyyy-MM-dd').format(_date),
+          ),
+        );
   }
 
   @override
@@ -120,12 +122,11 @@ class _TransactionPageState extends State<TransactionPage> {
                   margin: const EdgeInsets.all(16),
                 ),
               );
-              setState(() {
-                _selected = null;
-                _qtyCtrl.text = '1';
-                _notesCtrl.clear();
-              });
-              _loadProducts(); // refresh stok
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                AppRoutes.home,
+                (route) => false,
+              );
             } else if (state is TransactionError) {
               ScaffoldMessenger.of(ctx).showSnackBar(
                 SnackBar(
@@ -154,7 +155,7 @@ class _TransactionPageState extends State<TransactionPage> {
                   )
                 else
                   DropdownButtonFormField<int>(
-                    initialValue: _selected?.id,
+                    value: _selected?.id,
                     hint: const Text('Pilih produk...'),
                     decoration: InputDecoration(
                       filled: true,
@@ -221,11 +222,11 @@ class _TransactionPageState extends State<TransactionPage> {
                         const SizedBox(width: 6),
                         Text(
                           'Harga: ${_selected!.priceFormatted}',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                         ),
                       ],
                     ),
@@ -356,11 +357,11 @@ class _TransactionPageState extends State<TransactionPage> {
                         ),
                         Text(
                           'Rp ${_fmt.format(_total)}',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(
-                                color: AppColors.success,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    color: AppColors.success,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                         ),
                       ],
                     ),

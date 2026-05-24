@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:bloc/bloc.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeCubit extends Cubit<ThemeMode> {
@@ -38,6 +38,33 @@ class ThemeCubit extends Cubit<ThemeMode> {
         return 'dark';
       default:
         return 'system';
+    }
+  }
+}
+
+class LocaleCubit extends Cubit<Locale> {
+  static const _localeKey = 'sellaris_locale';
+  final SharedPreferences _prefs;
+
+  LocaleCubit._(this._prefs, Locale state) : super(state);
+
+  static Future<LocaleCubit> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_localeKey) ?? 'id';
+    return LocaleCubit._(prefs, _fromString(raw));
+  }
+
+  Future<void> updateLocale(Locale locale) async {
+    await _prefs.setString(_localeKey, locale.languageCode);
+    emit(locale);
+  }
+
+  static Locale _fromString(String raw) {
+    switch (raw) {
+      case 'en':
+        return const Locale('en');
+      default:
+        return const Locale('id');
     }
   }
 }

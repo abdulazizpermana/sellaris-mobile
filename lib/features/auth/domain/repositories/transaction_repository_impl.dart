@@ -2,9 +2,9 @@
 
 import 'package:sellari_umkm_frontend/features/auth/data/models/transaction_model.dart';
 
-import '../../domain/repositories/transaction_repository.dart';
-import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/network/api_client.dart';
+import '../../domain/repositories/transaction_repository.dart';
 
 class TransactionRepositoryImpl implements TransactionRepository {
   final ApiClient _api;
@@ -33,5 +33,14 @@ class TransactionRepositoryImpl implements TransactionRepository {
   Future<DailyReport> getDailyReport(String date) async {
     final res = await _api.get(AppConstants.dailyReport, query: {'date': date});
     return DailyReport.fromJson(res.data);
+  }
+
+  @override
+  Future<Map<String, dynamic>> getHistory({int page = 1}) async {
+    final res = await _api.get(
+      '/transactions/history',
+      query: {'page': '$page'},
+    );
+    return res.data as Map<String, dynamic>;
   }
 }

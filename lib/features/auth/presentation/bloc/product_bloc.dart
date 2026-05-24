@@ -10,7 +10,6 @@ import '../../../../core/network/api_client.dart';
 // ─── Events ───────────────────────────────────────────────────
 abstract class ProductEvent extends Equatable {
   const ProductEvent();
-
   @override
   List<Object?> get props => [];
 }
@@ -40,7 +39,14 @@ class ProductDeleteRequested extends ProductEvent {
 class ProductAiGenerateRequested extends ProductEvent {
   final int productId;
   final String productName;
-  const ProductAiGenerateRequested(this.productId, this.productName);
+  final String type; // ← TAMBAHAN
+  const ProductAiGenerateRequested(
+    this.productId,
+    this.productName, {
+    this.type = 'caption', // ← default caption
+  });
+  @override
+  List<Object?> get props => [productId, productName, type];
 }
 
 // ─── States ───────────────────────────────────────────────────
@@ -98,9 +104,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   Future<void> _onLoad(
-    ProductLoadRequested e,
-    Emitter<ProductState> emit,
-  ) async {
+      ProductLoadRequested e, Emitter<ProductState> emit) async {
     emit(ProductLoading());
     try {
       _products = await _repo.getProducts();
@@ -113,9 +117,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   Future<void> _onCreate(
-    ProductCreateRequested e,
-    Emitter<ProductState> emit,
-  ) async {
+      ProductCreateRequested e, Emitter<ProductState> emit) async {
     emit(ProductLoading());
     try {
       await _repo.createProduct(
@@ -138,9 +140,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   Future<void> _onDelete(
-    ProductDeleteRequested e,
-    Emitter<ProductState> emit,
-  ) async {
+      ProductDeleteRequested e, Emitter<ProductState> emit) async {
     try {
       await _repo.deleteProduct(e.id);
       _products = await _repo.getProducts();
@@ -151,59 +151,42 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   Future<void> _onAiGenerate(
-    ProductAiGenerateRequested e,
-    Emitter<ProductState> emit,
-  ) async {
+      ProductAiGenerateRequested e, Emitter<ProductState> emit) async {
     emit(ProductLoading());
     try {
-      final ai = await _repo.generateAiContent(e.productId);
+      final ai = await _repo.generateAiContent(
+        e.productId,
+        type: e.type, // ← kirim type dari event
+      );
       emit(ProductAiSuccess(ai, e.productName, _products));
     } on ValidationException catch (ex) {
-      final errorMsg = _mapAiError(ex.message, ex.errors);
-      emit(ProductError(errorMsg));
+      emit(ProductError(_mapAiError(ex.message, ex.errors)));
     } on ApiException catch (ex) {
-      final errorMsg = _mapAiError(ex.message, null);
-      emit(ProductError(errorMsg));
+      emit(ProductError(_mapAiError(ex.message, null)));
     } catch (_) {
-      emit(
-        const ProductError(
-          'Kami sedang kesulitan membuat konten. Silakan coba lagi sebentar.',
-        ),
-      );
+      emit(const ProductError(
+          'Kami sedang kesulitan membuat konten. Silakan coba lagi sebentar.'));
     }
   }
 
   String _mapAiError(String message, Map<String, dynamic>? errors) {
-    final normalized = message.toLowerCase();
-
-    if (errors != null && errors.isNotEmpty) {
-      if (errors.containsKey('product_id')) {
+    final n = message.toLowerCase();
+    if (errors != null) {
+      if (errors.containsKey('product_id'))
         return 'Produk tidak ditemukan. Silakan pilih produk lain.';
-      }
-      if (errors.containsKey('type')) {
+      if (errors.containsKey('type'))
         return 'Jenis konten belum tersedia. Coba pilih fitur lain.';
-      }
-      if (errors.containsKey('ai')) {
+      if (errors.containsKey('ai'))
         return 'AI sedang sibuk. Silakan coba beberapa saat lagi.';
-      }
     }
-
-    if (normalized.contains('produk belum memiliki data dasar')) {
-      return 'Data produk belum cukup untuk dibuatkan konten AI. Lengkapi deskripsi, target market, dan informasi utama produk.';
-    }
-
-    if (normalized.contains('nama produk belum tersedia')) {
-      return 'Nama produk belum terisi. Lengkapi data produk terlebih dahulu.';
-    }
-
-    if (normalized.contains('gagal menghubungi gemini')) {
-      return 'Layanan AI sedang bermasalah. Silakan coba lagi nanti.';
-    }
-
-    if (normalized.contains('timeout')) {
+    if (n.contains('produk belum memiliki data dasar'))
+      return 'Data produk belum cukup. Lengkapi deskripsi & target market.';
+    if (n.contains('nama produk belum tersedia'))
+      return 'Nama produk belum terisi. Lengkapi data produk.';
+    if (n.contains('gagal menghubungi gemini'))
+      return 'Layanan AI sedang bermasalah. Coba lagi nanti.';
+    if (n.contains('timeout'))
       return 'Koneksi ke layanan AI terlalu lama. Coba lagi ya.';
-    }
-
     return 'Konten belum bisa dibuat saat ini. Silakan coba lagi nanti.';
   }
 }

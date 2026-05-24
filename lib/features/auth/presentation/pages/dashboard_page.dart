@@ -370,6 +370,13 @@ class _DashboardActionRow extends StatelessWidget {
               color: AppColors.success,
               onTap: () => Navigator.pushNamed(context, AppRoutes.transaction),
             ),
+            _DashboardActionCard(
+              title: 'Riwayat Transaksi',
+              icon: Icons.history_rounded,
+              color: AppColors.warning,
+              onTap: () =>
+                  Navigator.pushNamed(context, AppRoutes.transactionHistory),
+            ),
           ],
         ),
       ],

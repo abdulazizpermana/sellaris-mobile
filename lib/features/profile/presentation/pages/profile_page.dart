@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:sellari_umkm_frontend/core/constants/route_constants.dart';
 import 'package:sellari_umkm_frontend/core/theme/app_theme.dart';
 import 'package:sellari_umkm_frontend/core/theme/theme_cubit.dart';
-import 'package:sellari_umkm_frontend/core/widgets/shared_widgets.dart';
 import 'package:sellari_umkm_frontend/features/auth/data/models/user_model.dart';
 import 'package:sellari_umkm_frontend/features/auth/presentation/bloc/auth_bloc.dart';
 
@@ -25,6 +25,10 @@ class _ProfilePageState extends State<ProfilePage> {
     final userState = context.watch<AuthBloc>().state;
     final user = userState is AuthAuthenticated ? userState.user : null;
     final themeMode = context.watch<ThemeCubit>().state;
+    final locale = context.watch<LocaleCubit>().state;
+    final isDarkMode = themeMode == ThemeMode.dark;
+    final selectedLanguage =
+        locale.languageCode == 'en' ? 'English' : 'Indonesia';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -36,7 +40,10 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 20),
           _buildSectionTitle('Preferensi'),
           const SizedBox(height: 12),
-          _buildPreferences(themeMode),
+          _buildPreferences(
+            isDarkMode: isDarkMode,
+            selectedLanguage: selectedLanguage,
+          ),
           const SizedBox(height: 20),
           _buildSectionTitle('AI Preferences'),
           const SizedBox(height: 12),
@@ -49,6 +56,15 @@ class _ProfilePageState extends State<ProfilePage> {
           _buildSectionTitle('Bantuan'),
           const SizedBox(height: 12),
           _buildSupportSection(),
+          const SizedBox(height: 20),
+          _buildSectionTitle('Akun'),
+          const SizedBox(height: 12),
+          _buildActionTile(
+            icon: Icons.logout_rounded,
+            title: 'Keluar',
+            subtitle: 'Keluar dari akun Sellaris UMKM',
+            onTap: _confirmLogout,
+          ),
           const SizedBox(height: 36),
         ],
       ),
@@ -116,38 +132,49 @@ class _ProfilePageState extends State<ProfilePage> {
     return Text(title, style: Theme.of(context).textTheme.titleLarge);
   }
 
-  Widget _buildPreferences(ThemeMode themeMode) {
+  Widget _buildPreferences({
+    required bool isDarkMode,
+    required String selectedLanguage,
+  }) {
     return Column(
       children: [
         SwitchListTile(
-          value: themeMode == ThemeMode.dark,
+          value: isDarkMode,
           title: const Text('Dark Mode'),
           subtitle: const Text(
             'Mode gelap menjaga tampilan premium di malam hari',
           ),
-          activeThumbColor: AppColors.primary,
-          onChanged: (value) {
-            context.read<ThemeCubit>().updateThemeMode(
-              value ? ThemeMode.dark : ThemeMode.light,
-            );
+          thumbColor: WidgetStateProperty.resolveWith<Color?>(
+            (states) => AppColors.primary,
+          ),
+          onChanged: (value) async {
+            await context.read<ThemeCubit>().updateThemeMode(
+                  value ? ThemeMode.dark : ThemeMode.light,
+                );
           },
         ),
         ListTile(
           title: const Text('Bahasa'),
-          subtitle: Text(_selectedLanguage),
+          subtitle: Text(selectedLanguage),
           trailing: const Icon(Icons.keyboard_arrow_right_rounded),
           onTap: () => _showOptions(
             title: 'Pilih Bahasa',
             options: ['Indonesia', 'English'],
-            selected: _selectedLanguage,
-            onSelected: (value) => setState(() => _selectedLanguage = value),
+            selected: selectedLanguage,
+            onSelected: (value) async {
+              final locale =
+                  value == 'English' ? const Locale('en') : const Locale('id');
+              await context.read<LocaleCubit>().updateLocale(locale);
+            },
           ),
         ),
         SwitchListTile(
           value: _notificationsEnabled,
           title: const Text('Notifikasi'),
           subtitle: const Text('Terima pengingat dan update penting'),
-          activeThumbColor: AppColors.primary,
+          thumbColor: WidgetStateProperty.resolveWith<Color?>(
+            (states) => AppColors.primary,
+          ),
           onChanged: (value) => setState(() => _notificationsEnabled = value),
         ),
       ],
@@ -332,6 +359,39 @@ class _ProfilePageState extends State<ProfilePage> {
         );
       },
     );
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Keluar dari akun?'),
+        content: const Text('Apakah kamu yakin ingin keluar?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text(
+              'Keluar',
+              style: TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      context.read<AuthBloc>().add(AuthLogoutRequested());
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.login,
+        (route) => false,
+      );
+    }
   }
 
   void _showMessage(String message) {

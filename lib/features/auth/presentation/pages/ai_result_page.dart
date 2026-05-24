@@ -94,10 +94,10 @@ class AiResultPage extends StatelessWidget {
                 Text(
                   'AI Generated',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
                 ),
               ],
             ),
@@ -109,14 +109,12 @@ class AiResultPage extends StatelessWidget {
         child: Column(
           children: [
             const SizedBox(height: 4),
-
             _ContentCard(
               icon: _iconForType(aiContent.type),
               title: _titleForType(aiContent.type),
               content: aiContent.content,
               color: _colorForType(aiContent.type),
             ),
-
             const SizedBox(height: 24),
           ],
         ),

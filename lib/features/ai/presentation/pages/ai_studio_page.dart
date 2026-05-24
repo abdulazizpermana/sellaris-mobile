@@ -1,3 +1,5 @@
+// lib/features/auth/presentation/pages/ai_studio_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sellari_umkm_frontend/features/auth/data/models/product_model.dart';
@@ -18,6 +20,7 @@ class AiStudioPage extends StatelessWidget {
   }
 }
 
+// ─── Feature Enum ─────────────────────────────────────────────
 enum AiStudioFeature {
   caption,
   marketplace,
@@ -78,8 +81,27 @@ extension AiStudioFeatureLabel on AiStudioFeature {
         return Icons.translate_rounded;
     }
   }
+
+  // ← MAPPING KE API TYPE — INI KUNCINYA!
+  String get apiType {
+    switch (this) {
+      case AiStudioFeature.caption:
+        return 'caption';
+      case AiStudioFeature.marketplace:
+        return 'marketplace';
+      case AiStudioFeature.hashtags:
+        return 'hashtag';
+      case AiStudioFeature.promo:
+        return 'promo';
+      case AiStudioFeature.smartReply:
+        return 'smart_reply';
+      case AiStudioFeature.translation:
+        return 'translate';
+    }
+  }
 }
 
+// ─── View ─────────────────────────────────────────────────────
 class _AiStudioView extends StatefulWidget {
   const _AiStudioView();
 
@@ -93,17 +115,28 @@ class _AiStudioViewState extends State<_AiStudioView> {
 
   void _onGenerate(BuildContext context) {
     if (_selectedProduct == null) {
+      print('=== SELECTED FEATURE: ${_selectedFeature.apiType} ===');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih produk terlebih dahulu')),
+        SnackBar(
+          content: const Text('Pilih produk terlebih dahulu'),
+          backgroundColor: AppColors.warning,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       );
       return;
     }
+
+    // ← Kirim apiType dari feature yang dipilih
     context.read<ProductBloc>().add(
-      ProductAiGenerateRequested(
-        _selectedProduct!.id,
-        _selectedProduct!.productName,
-      ),
-    );
+          ProductAiGenerateRequested(
+            _selectedProduct!.id,
+            _selectedProduct!.productName,
+            type: _selectedFeature.apiType, // ← INI YANG FIX MASALAHNYA!
+          ),
+        );
   }
 
   @override
@@ -111,7 +144,7 @@ class _AiStudioViewState extends State<_AiStudioView> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Sellaris AI Studio'), elevation: 0),
-      body: BlocListener<ProductBloc, ProductState>(
+      body: BlocConsumer<ProductBloc, ProductState>(
         listener: (context, state) {
           if (state is ProductAiSuccess) {
             Navigator.push(
@@ -123,35 +156,48 @@ class _AiStudioViewState extends State<_AiStudioView> {
                 ),
               ),
             );
-          }
-        },
-        child: BlocBuilder<ProductBloc, ProductState>(
-          builder: (context, state) {
-            final products = state is ProductLoaded
-                ? state.products
-                : <ProductModel>[];
-            return RefreshIndicator(
-              color: AppColors.primary,
-              onRefresh: () async =>
-                  context.read<ProductBloc>().add(ProductLoadRequested()),
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _buildHero(context),
-                  const SizedBox(height: 20),
-                  _buildFeatureGrid(),
-                  const SizedBox(height: 20),
-                  _buildProductSelector(products),
-                  const SizedBox(height: 20),
-                  _buildActionPanel(context),
-                  const SizedBox(height: 20),
-                  _buildHelpSection(context),
-                  const SizedBox(height: 24),
-                ],
+          } else if (state is ProductError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.all(16),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             );
-          },
-        ),
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state is ProductLoading;
+          final products = state is ProductLoaded
+              ? state.products
+              : state is ProductActionSuccess
+                  ? state.products
+                  : <ProductModel>[];
+
+          return RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: () async =>
+                context.read<ProductBloc>().add(ProductLoadRequested()),
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _buildHero(context),
+                const SizedBox(height: 20),
+                _buildFeatureGrid(isLoading),
+                const SizedBox(height: 20),
+                _buildProductSelector(products),
+                const SizedBox(height: 20),
+                _buildActionPanel(context, isLoading),
+                const SizedBox(height: 20),
+                _buildHelpSection(context),
+                const SizedBox(height: 24),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -173,10 +219,7 @@ class _AiStudioViewState extends State<_AiStudioView> {
           const Text(
             '✨ Sellaris AI Studio',
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-            ),
+                color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 10),
           const Text(
@@ -184,25 +227,40 @@ class _AiStudioViewState extends State<_AiStudioView> {
             style: TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: const [
-              _StatChip(label: 'Caption', color: Colors.white),
-              _StatChip(label: 'Hashtag', color: Colors.white),
-              _StatChip(label: 'Marketplace', color: Colors.white),
-            ],
+
+          // Chip fitur yang dipilih
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(_selectedFeature.icon, color: Colors.white, size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  'Dipilih: ${_selectedFeature.title}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFeatureGrid() {
+  Widget _buildFeatureGrid(bool isLoading) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Fitur Premium', style: Theme.of(context).textTheme.titleLarge),
+        Text('Pilih Fitur', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 14),
         Wrap(
           spacing: 12,
@@ -210,7 +268,10 @@ class _AiStudioViewState extends State<_AiStudioView> {
           children: AiStudioFeature.values.map((feature) {
             final isSelected = feature == _selectedFeature;
             return GestureDetector(
-              onTap: () => setState(() => _selectedFeature = feature),
+              onTap: isLoading
+                  ? null
+                  : () => setState(
+                      () => _selectedFeature = feature), // ← update state
               child: Container(
                 width: (MediaQuery.of(context).size.width - 64) / 2,
                 padding: const EdgeInsets.all(16),
@@ -240,19 +301,20 @@ class _AiStudioViewState extends State<_AiStudioView> {
                     Text(
                       feature.title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: isSelected
-                            ? Colors.white
-                            : AppColors.textPrimary,
-                      ),
+                            color: isSelected
+                                ? Colors.white
+                                : AppColors.textPrimary,
+                          ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       feature.subtitle,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: isSelected
-                            ? Colors.white70
-                            : AppColors.textSecondary,
-                      ),
+                            color: isSelected
+                                ? Colors.white70
+                                : AppColors.textSecondary,
+                            fontSize: 11,
+                          ),
                     ),
                   ],
                 ),
@@ -285,17 +347,44 @@ class _AiStudioViewState extends State<_AiStudioView> {
             items: products.map((product) {
               return DropdownMenuItem(
                 value: product,
-                child: Text(product.productName),
+                child: Text(
+                  product.productName,
+                  overflow: TextOverflow.ellipsis,
+                ),
               );
             }).toList(),
             onChanged: (value) => setState(() => _selectedProduct = value),
           ),
         ),
+
+        // Preview produk yang dipilih
+        if (_selectedProduct != null) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(children: [
+              const Icon(Icons.info_outline_rounded,
+                  color: AppColors.primary, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                '${_selectedProduct!.productName} • ${_selectedProduct!.priceFormatted}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ]),
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildActionPanel(BuildContext context) {
+  Widget _buildActionPanel(BuildContext context, bool isLoading) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -306,21 +395,35 @@ class _AiStudioViewState extends State<_AiStudioView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Siap untuk membuat konten?',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          Text('Siap untuk membuat konten?',
+              style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 10),
           Text(
-            'Pilih produk lalu tekan tombol untuk membuat konten AI yang profesional dan cepat.',
+            'Fitur: ${_selectedFeature.title}\nPilih produk lalu tekan tombol untuk membuat konten AI.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: () => _onGenerate(context),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 14),
-              child: Text('Generate Konten Sekarang'),
+            onPressed: isLoading ? null : () => _onGenerate(context),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.auto_awesome_rounded, size: 18),
+                        const SizedBox(width: 8),
+                        Text('Generate ${_selectedFeature.title}'),
+                      ],
+                    ),
             ),
           ),
         ],
@@ -332,17 +435,22 @@ class _AiStudioViewState extends State<_AiStudioView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Kenapa AI Studio?',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
+        Text('Kenapa AI Studio?',
+            style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 10),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: const [
-            _FeatureBadge(icon: Icons.flash_on_rounded, label: 'Cepat'),
-            _FeatureBadge(icon: Icons.auto_graph_rounded, label: 'Penjualan'),
-            _FeatureBadge(icon: Icons.handshake_rounded, label: 'Professional'),
+            Expanded(
+                child: _FeatureBadge(
+                    icon: Icons.flash_on_rounded, label: 'Cepat')),
+            SizedBox(width: 8),
+            Expanded(
+                child: _FeatureBadge(
+                    icon: Icons.auto_graph_rounded, label: 'Penjualan')),
+            SizedBox(width: 8),
+            Expanded(
+                child: _FeatureBadge(
+                    icon: Icons.handshake_rounded, label: 'Professional')),
           ],
         ),
       ],
@@ -350,31 +458,7 @@ class _AiStudioViewState extends State<_AiStudioView> {
   }
 }
 
-class _StatChip extends StatelessWidget {
-  final String label;
-  final Color color;
-  const _StatChip({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.18),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
+// ─── Helper Widgets ───────────────────────────────────────────
 class _FeatureBadge extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -382,27 +466,24 @@ class _FeatureBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        margin: const EdgeInsets.only(right: 8),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: AppColors.primary, size: 22),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: AppColors.primary, size: 22),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
       ),
     );
   }
