@@ -18,6 +18,7 @@ abstract class ProductRepository {
   Future<void> deleteProduct(int id);
   Future<AiContent> generateAiContent(
     int productId, {
-    String type, // ← TAMBAHAN parameter type
+    String type,
   });
+  Future<AiAllContent> generateAllAiContent(int productId);
 }

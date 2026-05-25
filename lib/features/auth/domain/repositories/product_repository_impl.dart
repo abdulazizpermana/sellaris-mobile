@@ -61,15 +61,26 @@ class ProductRepositoryImpl implements ProductRepository {
   @override
   Future<AiContent> generateAiContent(
     int productId, {
-    String type = 'caption', // ← TAMBAHAN parameter type
+    String type = 'caption',
   }) async {
     final res = await _api.post(
       AppConstants.aiGenerate,
       body: {
         'product_id': productId,
-        'type': type, // ← kirim type ke API
+        'type': type,
       },
     );
     return AiContent.fromJson(res.data['data']);
+  }
+
+  @override
+  Future<AiAllContent> generateAllAiContent(int productId) async {
+    final res = await _api.post(
+      '/ai/generate-all',
+      body: {
+        'product_id': productId,
+      },
+    );
+    return AiAllContent.fromJson(res.data['data']);
   }
 }

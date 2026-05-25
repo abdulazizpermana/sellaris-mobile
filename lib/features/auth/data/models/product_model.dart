@@ -33,6 +33,33 @@ class AiContent {
       );
 }
 
+class AiAllContent {
+  final String? caption;
+  final String? hashtag;
+  final String? marketplace;
+  final String? promo;
+  final String? translate;
+  final String? smartReply;
+
+  const AiAllContent({
+    this.caption,
+    this.hashtag,
+    this.marketplace,
+    this.promo,
+    this.translate,
+    this.smartReply,
+  });
+
+  factory AiAllContent.fromJson(Map<String, dynamic> json) => AiAllContent(
+        caption: json['caption']?.toString(),
+        hashtag: json['hashtag']?.toString(),
+        marketplace: json['marketplace']?.toString(),
+        promo: json['promo']?.toString(),
+        translate: json['translate']?.toString(),
+        smartReply: json['smart_reply']?.toString(),
+      );
+}
+
 class ProductModel {
   final int id;
   final String productName, priceFormatted;
