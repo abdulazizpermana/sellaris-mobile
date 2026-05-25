@@ -145,7 +145,6 @@ class _AiStudioViewState extends State<_AiStudioView> {
 
   void _onGenerate(BuildContext context) {
     if (_selectedProduct == null) {
-      print('=== SELECTED FEATURE: ${_selectedFeature.apiType} ===');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Pilih produk terlebih dahulu'),
@@ -202,11 +201,9 @@ class _AiStudioViewState extends State<_AiStudioView> {
         },
         builder: (context, state) {
           final isLoading = state is ProductLoading;
-          final products = state is ProductLoaded
-              ? state.products
-              : state is ProductActionSuccess
-                  ? state.products
-                  : <ProductModel>[];
+          final products = _extractProducts(state);
+
+          _syncSelectedProduct(products);
 
           return RefreshIndicator(
             color: AppColors.primary,
@@ -231,6 +228,53 @@ class _AiStudioViewState extends State<_AiStudioView> {
         },
       ),
     );
+  }
+
+  List<ProductModel> _extractProducts(ProductState state) {
+    if (state is ProductLoaded) {
+      return state.products;
+    }
+
+    if (state is ProductRefreshing) {
+      return state.products;
+    }
+
+    if (state is ProductActionSuccess) {
+      return state.products;
+    }
+
+    if (state is ProductAiSuccess) {
+      return state.products;
+    }
+
+    if (state is ProductAiAllSuccess) {
+      return state.products;
+    }
+
+    if (state is ProductError) {
+      return state.products;
+    }
+
+    return <ProductModel>[];
+  }
+
+  void _syncSelectedProduct(List<ProductModel> products) {
+    if (_selectedProduct == null) {
+      return;
+    }
+
+    final selectedProductId = _selectedProduct!.id;
+
+    for (final product in products) {
+      if (product.id == selectedProductId) {
+        if (!identical(product, _selectedProduct)) {
+          _selectedProduct = product;
+        }
+        return;
+      }
+    }
+
+    _selectedProduct = null;
   }
 
   Widget _buildHero(BuildContext context) {
@@ -263,7 +307,7 @@ class _AiStudioViewState extends State<_AiStudioView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -315,7 +359,7 @@ class _AiStudioViewState extends State<_AiStudioView> {
                   boxShadow: [
                     if (isSelected)
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.12),
+                        color: AppColors.primary.withValues(alpha: 0.12),
                         blurRadius: 16,
                         offset: const Offset(0, 8),
                       ),
@@ -469,8 +513,8 @@ class _AiStudioViewState extends State<_AiStudioView> {
         Text('Kenapa AI Studio?',
             style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 10),
-        Row(
-          children: const [
+        const Row(
+          children: [
             Expanded(
                 child: _FeatureBadge(
                     icon: Icons.flash_on_rounded, label: 'Cepat')),

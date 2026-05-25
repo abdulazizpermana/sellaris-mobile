@@ -127,9 +127,10 @@ class ProductAiAllSuccess extends ProductState {
 
 class ProductError extends ProductState {
   final String message;
-  const ProductError(this.message);
+  final List<ProductModel> products;
+  const ProductError(this.message, [this.products = const []]);
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, products];
 }
 
 // ─── BLoC ─────────────────────────────────────────────────────
@@ -157,9 +158,10 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       _products = await _repo.getProducts();
       emit(ProductLoaded(_products));
     } on ApiException catch (ex) {
-      emit(ProductError(ex.message));
+      emit(ProductError(ex.message, List<ProductModel>.from(_products)));
     } catch (_) {
-      emit(const ProductError('Gagal memuat produk'));
+      emit(ProductError(
+          'Gagal memuat produk', List<ProductModel>.from(_products)));
     }
   }
 
@@ -178,11 +180,12 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       _products = await _repo.getProducts();
       emit(ProductActionSuccess('Produk berhasil ditambahkan! ✅', _products));
     } on ValidationException catch (ex) {
-      emit(ProductError(ex.message));
+      emit(ProductError(ex.message, List<ProductModel>.from(_products)));
     } on ApiException catch (ex) {
-      emit(ProductError(ex.message));
+      emit(ProductError(ex.message, List<ProductModel>.from(_products)));
     } catch (_) {
-      emit(const ProductError('Gagal menambahkan produk'));
+      emit(ProductError(
+          'Gagal menambahkan produk', List<ProductModel>.from(_products)));
     }
   }
 
@@ -193,13 +196,17 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       _products = await _repo.getProducts();
       emit(ProductActionSuccess('Produk dihapus', _products));
     } on ApiException catch (ex) {
-      emit(ProductError(ex.message));
+      emit(ProductError(ex.message, List<ProductModel>.from(_products)));
     }
   }
 
   Future<void> _onAiGenerate(
       ProductAiGenerateRequested e, Emitter<ProductState> emit) async {
-    emit(ProductLoading());
+    if (_products.isEmpty) {
+      emit(ProductLoading());
+    } else {
+      emit(ProductRefreshing(List<ProductModel>.from(_products)));
+    }
     try {
       final ai = await _repo.generateAiContent(
         e.productId,
@@ -212,28 +219,48 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         _products,
       ));
     } on ValidationException catch (ex) {
-      emit(ProductError(_mapAiError(ex.message, ex.errors)));
+      emit(ProductError(
+        _mapAiError(ex.message, ex.errors),
+        List<ProductModel>.from(_products),
+      ));
     } on ApiException catch (ex) {
-      emit(ProductError(_mapAiError(ex.message, null)));
+      emit(ProductError(
+        _mapAiError(ex.message, null),
+        List<ProductModel>.from(_products),
+      ));
     } catch (_) {
-      emit(const ProductError(
-          'Kami sedang kesulitan membuat konten. Silakan coba lagi sebentar.'));
+      emit(ProductError(
+        'Kami sedang kesulitan membuat konten. Silakan coba lagi sebentar.',
+        List<ProductModel>.from(_products),
+      ));
     }
   }
 
   Future<void> _onAiGenerateAll(
       ProductAiGenerateAllRequested e, Emitter<ProductState> emit) async {
-    emit(ProductLoading());
+    if (_products.isEmpty) {
+      emit(ProductLoading());
+    } else {
+      emit(ProductRefreshing(List<ProductModel>.from(_products)));
+    }
     try {
       final ai = await _repo.generateAllAiContent(e.productId);
       emit(ProductAiAllSuccess(ai, e.productName, _products));
     } on ValidationException catch (ex) {
-      emit(ProductError(_mapAiError(ex.message, ex.errors)));
+      emit(ProductError(
+        _mapAiError(ex.message, ex.errors),
+        List<ProductModel>.from(_products),
+      ));
     } on ApiException catch (ex) {
-      emit(ProductError(_mapAiError(ex.message, null)));
+      emit(ProductError(
+        _mapAiError(ex.message, null),
+        List<ProductModel>.from(_products),
+      ));
     } catch (_) {
-      emit(const ProductError(
-          'Kami sedang kesulitan membuat semua konten. Silakan coba lagi sebentar.'));
+      emit(ProductError(
+        'Kami sedang kesulitan membuat semua konten. Silakan coba lagi sebentar.',
+        List<ProductModel>.from(_products),
+      ));
     }
   }
 
