@@ -237,29 +237,22 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   }
 
   Future<void> _onAiGenerateAll(
-      ProductAiGenerateAllRequested e, Emitter<ProductState> emit) async {
-    if (_products.isEmpty) {
-      emit(ProductLoading());
-    } else {
-      emit(ProductRefreshing(List<ProductModel>.from(_products)));
-    }
+    ProductAiGenerateAllRequested e,
+    Emitter<ProductState> emit,
+  ) async {
+    emit(ProductLoading()); // ← selalu emit loading, hapus kondisi if/else
     try {
       final ai = await _repo.generateAllAiContent(e.productId);
       emit(ProductAiAllSuccess(ai, e.productName, _products));
     } on ValidationException catch (ex) {
       emit(ProductError(
-        _mapAiError(ex.message, ex.errors),
-        List<ProductModel>.from(_products),
-      ));
+          _mapAiError(ex.message, ex.errors))); // ← 1 parameter saja
     } on ApiException catch (ex) {
-      emit(ProductError(
-        _mapAiError(ex.message, null),
-        List<ProductModel>.from(_products),
-      ));
-    } catch (_) {
-      emit(ProductError(
+      emit(ProductError(_mapAiError(ex.message, null))); // ← 1 parameter saja
+    } catch (e) {
+      print('=== UNKNOWN ERROR: $e'); // ← tambah sementara untuk debug
+      emit(const ProductError(
         'Kami sedang kesulitan membuat semua konten. Silakan coba lagi sebentar.',
-        List<ProductModel>.from(_products),
       ));
     }
   }

@@ -76,10 +76,8 @@ class ProductRepositoryImpl implements ProductRepository {
   @override
   Future<AiAllContent> generateAllAiContent(int productId) async {
     final res = await _api.post(
-      '/ai/generate-all',
-      body: {
-        'product_id': productId,
-      },
+      AppConstants.aiGenerateAll, // ← pakai konstanta
+      body: {'product_id': productId},
     );
     return AiAllContent.fromJson(res.data['data']);
   }
