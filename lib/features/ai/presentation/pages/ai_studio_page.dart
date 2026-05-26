@@ -336,7 +336,7 @@ class _AiStudioViewState extends State<_AiStudioView> {
                 const SizedBox(height: 20),
                 _buildFeatureGrid(isLoading),
                 const SizedBox(height: 20),
-                _buildProductSelector(products),
+                _buildProductSelector(products, isLoading),
                 const SizedBox(height: 20),
                 _buildActionPanel(context, isLoading),
                 const SizedBox(height: 20),
@@ -455,127 +455,337 @@ class _AiStudioViewState extends State<_AiStudioView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Pilih Fitur', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 14),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: AiStudioFeature.values.map((feature) {
-            final isSelected = feature == _selectedFeature;
-            return GestureDetector(
-              onTap: isLoading
-                  ? null
-                  : () => setState(
-                      () => _selectedFeature = feature), // ← update state
-              child: Container(
-                width: (MediaQuery.of(context).size.width - 64) / 2,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.primary : AppColors.surface,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: isSelected ? AppColors.primary : AppColors.border,
-                  ),
-                  boxShadow: [
-                    if (isSelected)
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.12),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
-                      ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      feature.icon,
-                      color: isSelected ? Colors.white : AppColors.primary,
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      feature.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: isSelected
-                                ? Colors.white
-                                : AppColors.textPrimary,
-                          ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      feature.subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: isSelected
-                                ? Colors.white70
-                                : AppColors.textSecondary,
-                            fontSize: 11,
-                          ),
-                    ),
-                  ],
-                ),
+        Text(
+          'Pilih Fitur AI',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Pilih jenis konten yang ingin dibuat. Card dibuat lebih rapi agar mudah dipilih dan nyaman dibaca.',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.textSecondary,
+                height: 1.45,
+              ),
+        ),
+        const SizedBox(height: 16),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final itemWidth = (constraints.maxWidth - 12) / 2;
+
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: AiStudioFeature.values.map((feature) {
+                final isSelected = feature == _selectedFeature;
+
+                return SizedBox(
+                  width: itemWidth,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(22),
+                      onTap: isLoading
+                          ? null
+                          : () => setState(() => _selectedFeature = feature),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOut,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.surface,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.border,
+                            width: isSelected ? 1.4 : 1,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: isSelected
+                                  ? AppColors.primary.withValues(alpha: 0.16)
+                                  : Colors.black.withValues(alpha: 0.035),
+                              blurRadius: isSelected ? 18 : 12,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? Colors.white.withValues(alpha: 0.16)
+                                        : AppColors.primaryLight,
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Icon(
+                                    feature.icon,
+                                    size: 21,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : AppColors.primary,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : AppColors.background,
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : AppColors.border,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Icons.check_rounded,
+                                    size: 15,
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : Colors.transparent,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              feature.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(
+                                    color: isSelected
+                                        ? Colors.white
+                                        : AppColors.textPrimary,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.25,
+                                  ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              feature.subtitle,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: isSelected
+                                        ? Colors.white.withValues(alpha: 0.82)
+                                        : AppColors.textSecondary,
+                                    height: 1.45,
+                                  ),
+                            ),
+                            const SizedBox(height: 14),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? Colors.white.withValues(alpha: 0.14)
+                                    : AppColors.background,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                isSelected
+                                    ? 'Sedang dipilih'
+                                    : 'Tap untuk pilih',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelMedium
+                                    ?.copyWith(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : AppColors.textSecondary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
             );
-          }).toList(),
+          },
         ),
       ],
     );
   }
 
-  Widget _buildProductSelector(List<ProductModel> products) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Pilih Produk', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: DropdownButton<ProductModel>(
-            value: _selectedProduct,
-            underline: const SizedBox(),
-            isExpanded: true,
-            hint: const Text('Pilih produk untuk dibuat konten AI'),
-            items: products.map((product) {
-              return DropdownMenuItem(
-                value: product,
-                child: Text(
-                  product.productName,
-                  overflow: TextOverflow.ellipsis,
+  Widget _buildProductSelector(List<ProductModel> products, bool isLoading) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Pilih Produk',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
-              );
-            }).toList(),
-            onChanged: (value) => setState(() => _selectedProduct = value),
           ),
-        ),
+          const SizedBox(height: 6),
+          Text(
+            'Pilih produk yang ingin dibuatkan konten AI agar hasilnya lebih relevan dengan usaha kamu.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                  height: 1.45,
+                ),
+          ),
+          const SizedBox(height: 14),
+          GestureDetector(
+            onTap: products.isEmpty || isLoading
+                ? null
+                : () async {
+                    final selectedProduct =
+                        await showModalBottomSheet<ProductModel>(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (sheetContext) {
+                        return _ProductSelectionSheet(
+                          products: products,
+                          selectedProduct: _selectedProduct,
+                        );
+                      },
+                    );
 
-        // Preview produk yang dipilih
-        if (_selectedProduct != null) ...[
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(children: [
-              const Icon(Icons.info_outline_rounded,
-                  color: AppColors.primary, size: 16),
-              const SizedBox(width: 6),
-              Text(
-                '${_selectedProduct!.productName} • ${_selectedProduct!.priceFormatted}',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
+                    if (selectedProduct != null && mounted) {
+                      setState(() => _selectedProduct = selectedProduct);
+                    }
+                  },
+            child: AbsorbPointer(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 18,
+                ),
+                decoration: BoxDecoration(
+                  color: isLoading
+                      ? AppColors.background.withValues(alpha: 0.7)
+                      : AppColors.background,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.inventory_2_outlined,
+                      color: AppColors.textSecondary,
                     ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _selectedProduct?.productName ??
+                            (products.isEmpty
+                                ? 'Belum ada produk tersedia'
+                                : 'Pilih produk untuk dibuat konten AI'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: _selectedProduct != null
+                                  ? AppColors.textPrimary
+                                  : AppColors.textSecondary,
+                              fontWeight: _selectedProduct != null
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: products.isEmpty || isLoading
+                          ? AppColors.textSecondary.withValues(alpha: 0.5)
+                          : AppColors.textSecondary,
+                    ),
+                  ],
+                ),
               ),
-            ]),
+            ),
           ),
+          if (_selectedProduct != null) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.inventory_2_outlined,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _selectedProduct!.productName,
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _selectedProduct!.priceFormatted,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -654,6 +864,172 @@ class _AiStudioViewState extends State<_AiStudioView> {
 }
 
 // ─── Helper Widgets ───────────────────────────────────────────
+class _ProductSelectionSheet extends StatelessWidget {
+  final List<ProductModel> products;
+  final ProductModel? selectedProduct;
+
+  const _ProductSelectionSheet({
+    required this.products,
+    required this.selectedProduct,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.72,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 42,
+              height: 5,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Pilih Produk',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+            ),
+            if (products.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Text(
+                    'Belum ada produk yang tersedia untuk dipilih.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                  ),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                  itemCount: products.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final product = products[index];
+                    final isSelected = selectedProduct?.id == product.id;
+
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () => Navigator.pop(context, product),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.primaryLight
+                              : AppColors.background,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.border,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppColors.surface,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Icon(
+                                Icons.inventory_2_outlined,
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.textSecondary,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    product.productName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    product.priceFormatted,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Icon(
+                              isSelected
+                                  ? Icons.check_circle_rounded
+                                  : Icons.chevron_right_rounded,
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : AppColors.textSecondary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _FeatureBadge extends StatelessWidget {
   final IconData icon;
   final String label;
