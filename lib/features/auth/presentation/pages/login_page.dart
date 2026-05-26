@@ -18,6 +18,7 @@ class _LoginPageState extends State<LoginPage> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
+  bool _isLoadingDialogVisible = false;
 
   void _disposeControllers() {
     _emailCtrl.dispose();
@@ -26,12 +27,129 @@ class _LoginPageState extends State<LoginPage> {
 
   void _submit(BuildContext ctx) {
     if (!_form.currentState!.validate()) return;
+    _showLoadingDialog(ctx);
     ctx.read<AuthBloc>().add(
-      AuthLoginRequested(
-        email: _emailCtrl.text.trim(),
-        password: _passCtrl.text,
-      ),
-    );
+          AuthLoginRequested(
+            email: _emailCtrl.text.trim(),
+            password: _passCtrl.text,
+          ),
+        );
+  }
+
+  void _showLoadingDialog(BuildContext context) {
+    if (_isLoadingDialogVisible) {
+      return;
+    }
+
+    _isLoadingDialogVisible = true;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return PopScope(
+          canPop: false,
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 24,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 68,
+                    height: 68,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Sedang masuk ke akun...',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Kami sedang memverifikasi akun kamu agar bisa masuk ke Sellaris dengan aman.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                          height: 1.5,
+                        ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.lock_outline_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Mohon tunggu beberapa saat',
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    ).then((_) {
+      _isLoadingDialogVisible = false;
+    });
+  }
+
+  void _hideLoadingDialog(BuildContext context) {
+    if (!_isLoadingDialogVisible || !mounted) {
+      return;
+    }
+
+    Navigator.of(context, rootNavigator: true).pop();
   }
 
   @override
@@ -41,8 +159,10 @@ class _LoginPageState extends State<LoginPage> {
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (ctx, state) {
           if (state is AuthAuthenticated) {
+            _hideLoadingDialog(ctx);
             Navigator.pushReplacementNamed(ctx, '/home');
           } else if (state is AuthError) {
+            _hideLoadingDialog(ctx);
             ScaffoldMessenger.of(ctx).showSnackBar(
               SnackBar(
                 content: Text(state.message),
@@ -190,7 +310,9 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           child: Text(
                             'Daftar Sekarang',
-                            style: Theme.of(context).textTheme.bodyMedium
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
                                 ?.copyWith(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.w700,

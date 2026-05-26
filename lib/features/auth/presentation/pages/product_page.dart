@@ -37,6 +37,7 @@ class _ProductViewState extends State<_ProductView> {
   String _sortBy = 'Newest';
   String _filter = 'Semua';
   int? _generatingProductId;
+  bool _isLoadingDialogVisible = false;
 
   @override
   void dispose() {
@@ -73,6 +74,7 @@ class _ProductViewState extends State<_ProductView> {
           }
 
           if (state is ProductAiSuccess) {
+            _hideLoadingDialog(ctx);
             setState(() => _generatingProductId = null);
             Navigator.push(
               ctx,
@@ -87,6 +89,7 @@ class _ProductViewState extends State<_ProductView> {
           }
 
           if (state is ProductAiAllSuccess) {
+            _hideLoadingDialog(ctx);
             setState(() => _generatingProductId = null);
             Navigator.push(
               ctx,
@@ -120,6 +123,7 @@ class _ProductViewState extends State<_ProductView> {
           }
 
           if (state is ProductError) {
+            _hideLoadingDialog(ctx);
             setState(() => _generatingProductId = null);
             _showSnackBar(
               ctx,
@@ -702,12 +706,129 @@ class _ProductViewState extends State<_ProductView> {
 
   void _generateAi(BuildContext ctx, ProductModel product) {
     setState(() => _generatingProductId = product.id);
+    _showLoadingDialog(ctx, product.productName);
     ctx.read<ProductBloc>().add(
           ProductAiGenerateAllRequested(
             product.id,
             product.productName,
           ),
         );
+  }
+
+  void _showLoadingDialog(BuildContext context, String productName) {
+    if (_isLoadingDialogVisible) {
+      return;
+    }
+
+    _isLoadingDialogVisible = true;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return PopScope(
+          canPop: false,
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 24,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 68,
+                    height: 68,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Sedang membuat konten...',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'AI sedang menyiapkan konten untuk $productName.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                          height: 1.5,
+                        ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.auto_awesome_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Mohon tunggu beberapa saat',
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    ).then((_) {
+      _isLoadingDialogVisible = false;
+    });
+  }
+
+  void _hideLoadingDialog(BuildContext context) {
+    if (!_isLoadingDialogVisible || !mounted) {
+      return;
+    }
+
+    Navigator.of(context, rootNavigator: true).pop();
   }
 
   int? _findProductIdByName(List<ProductModel> products, String productName) {

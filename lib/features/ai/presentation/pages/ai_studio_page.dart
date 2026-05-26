@@ -118,6 +118,7 @@ class _AiStudioView extends StatefulWidget {
 class _AiStudioViewState extends State<_AiStudioView> {
   late AiStudioFeature _selectedFeature;
   ProductModel? _selectedProduct;
+  bool _isLoadingDialogVisible = false;
 
   @override
   void initState() {
@@ -158,14 +159,131 @@ class _AiStudioViewState extends State<_AiStudioView> {
       return;
     }
 
-    // ← Kirim apiType dari feature yang dipilih
+    _showLoadingDialog(context);
+
     context.read<ProductBloc>().add(
           ProductAiGenerateRequested(
             _selectedProduct!.id,
             _selectedProduct!.productName,
-            type: _selectedFeature.apiType, // ← INI YANG FIX MASALAHNYA!
+            type: _selectedFeature.apiType,
           ),
         );
+  }
+
+  void _showLoadingDialog(BuildContext context) {
+    if (_isLoadingDialogVisible) {
+      return;
+    }
+
+    _isLoadingDialogVisible = true;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return PopScope(
+          canPop: false,
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 24,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 68,
+                    height: 68,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'Sedang membuat konten...',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'AI sedang menyiapkan ${_selectedFeature.title.toLowerCase()} untuk ${_selectedProduct!.productName}.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                          height: 1.5,
+                        ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.auto_awesome_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Mohon tunggu beberapa saat',
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    ).then((_) {
+      _isLoadingDialogVisible = false;
+    });
+  }
+
+  void _hideLoadingDialog(BuildContext context) {
+    if (!_isLoadingDialogVisible || !mounted) {
+      return;
+    }
+
+    Navigator.of(context, rootNavigator: true).pop();
   }
 
   @override
@@ -176,6 +294,7 @@ class _AiStudioViewState extends State<_AiStudioView> {
       body: BlocConsumer<ProductBloc, ProductState>(
         listener: (context, state) {
           if (state is ProductAiSuccess) {
+            _hideLoadingDialog(context);
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -187,6 +306,7 @@ class _AiStudioViewState extends State<_AiStudioView> {
               ),
             );
           } else if (state is ProductError) {
+            _hideLoadingDialog(context);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
@@ -482,23 +602,23 @@ class _AiStudioViewState extends State<_AiStudioView> {
             onPressed: isLoading ? null : () => _onGenerate(context),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 14),
-              child: isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2.5,
-                      ),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.auto_awesome_rounded, size: 18),
-                        const SizedBox(width: 8),
-                        Text('Generate ${_selectedFeature.title}'),
-                      ],
-                    ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isLoading
+                        ? Icons.hourglass_top_rounded
+                        : Icons.auto_awesome_rounded,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    isLoading
+                        ? 'Menyiapkan konten...'
+                        : 'Generate ${_selectedFeature.title}',
+                  ),
+                ],
+              ),
             ),
           ),
         ],
