@@ -33,6 +33,62 @@ class AiContent {
       );
 }
 
+class AiContentHistory {
+  final String? caption;
+  final String? hashtag;
+  final String? marketplace;
+  final String? promo;
+  final String? translate;
+  final String? smartReply;
+
+  const AiContentHistory({
+    this.caption,
+    this.hashtag,
+    this.marketplace,
+    this.promo,
+    this.translate,
+    this.smartReply,
+  });
+
+  bool get hasAnyContent =>
+      caption != null ||
+      hashtag != null ||
+      marketplace != null ||
+      promo != null ||
+      translate != null ||
+      smartReply != null;
+
+  factory AiContentHistory.fromJson(Map<String, dynamic> json) {
+    final rawData = json['data'];
+    final data = rawData is Map
+        ? Map<String, dynamic>.from(rawData)
+        : Map<String, dynamic>.from(json);
+
+    return AiContentHistory(
+      caption: _extractContent(data['caption']),
+      hashtag: _extractContent(data['hashtag']),
+      marketplace: _extractContent(data['marketplace']),
+      promo: _extractContent(data['promo']),
+      translate: _extractContent(data['translate']),
+      smartReply: _extractContent(data['smart_reply']),
+    );
+  }
+
+  static String? _extractContent(dynamic item) {
+    if (item == null) return null;
+
+    if (item is Map) {
+      final map = Map<String, dynamic>.from(item);
+      return map['generated_content']?.toString() ??
+          map['content']?.toString() ??
+          map['text']?.toString();
+    }
+
+    final text = item.toString().trim();
+    return text.isEmpty ? null : text;
+  }
+}
+
 class AiAllContent {
   final String? caption;
   final String? hashtag;

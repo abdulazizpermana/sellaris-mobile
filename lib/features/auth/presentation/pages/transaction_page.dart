@@ -148,6 +148,291 @@ class _TransactionPageState extends State<TransactionPage> {
     }
   }
 
+  Future<void> _openProductPicker() async {
+    if (_loadingProducts || _products.isEmpty) {
+      return;
+    }
+
+    final selectedProduct = await showModalBottomSheet<ProductModel>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final searchCtrl = TextEditingController();
+        final filteredProducts = List<ProductModel>.from(_products);
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            void filterProducts(String query) {
+              final normalizedQuery = query.trim().toLowerCase();
+
+              setModalState(() {
+                filteredProducts
+                  ..clear()
+                  ..addAll(
+                    _products.where((product) {
+                      final name = product.productName.toLowerCase();
+                      final description =
+                          (product.description ?? '').toLowerCase();
+                      return name.contains(normalizedQuery) ||
+                          description.contains(normalizedQuery);
+                    }),
+                  );
+              });
+            }
+
+            return SafeArea(
+              top: false,
+              child: Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.78,
+                ),
+                decoration: const BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                ),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 12),
+                    Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: AppColors.border,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Pilih Produk',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${_products.length} produk tersedia',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                          color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                      child: TextField(
+                        controller: searchCtrl,
+                        onChanged: filterProducts,
+                        decoration: InputDecoration(
+                          hintText: 'Cari nama produk...',
+                          prefixIcon: const Icon(Icons.search_rounded),
+                          filled: true,
+                          fillColor: AppColors.background,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: filteredProducts.isEmpty
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.inventory_2_outlined,
+                                      size: 44,
+                                      color: AppColors.textSecondary
+                                          .withValues(alpha: 0.7),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Produk tidak ditemukan',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Coba kata kunci lain untuk menemukan produk.',
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                              itemCount: filteredProducts.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final product = filteredProducts[index];
+                                final isSelected = _selected?.id == product.id;
+                                final isOutOfStock = product.stock <= 0;
+
+                                return Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(18),
+                                    onTap: () =>
+                                        Navigator.pop(context, product),
+                                    child: Ink(
+                                      padding: const EdgeInsets.all(14),
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? AppColors.primaryLight
+                                            : AppColors.background,
+                                        borderRadius: BorderRadius.circular(18),
+                                        border: Border.all(
+                                          color: isSelected
+                                              ? AppColors.primary
+                                              : AppColors.border,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 44,
+                                            height: 44,
+                                            decoration: BoxDecoration(
+                                              color: isSelected
+                                                  ? AppColors.primary
+                                                      .withValues(alpha: 0.12)
+                                                  : Colors.white,
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            ),
+                                            child: Icon(
+                                              Icons.shopping_bag_rounded,
+                                              color: isSelected
+                                                  ? AppColors.primary
+                                                  : AppColors.textSecondary,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  product.productName,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .titleMedium
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  '${product.priceFormatted} • Stok ${product.stock}',
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .bodyMedium
+                                                      ?.copyWith(
+                                                        color: AppColors
+                                                            .textSecondary,
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isOutOfStock
+                                                  ? AppColors.error
+                                                      .withValues(alpha: 0.10)
+                                                  : AppColors.success
+                                                      .withValues(alpha: 0.10),
+                                              borderRadius:
+                                                  BorderRadius.circular(999),
+                                            ),
+                                            child: Text(
+                                              isOutOfStock
+                                                  ? 'Habis'
+                                                  : 'Tersedia',
+                                              style: TextStyle(
+                                                color: isOutOfStock
+                                                    ? AppColors.error
+                                                    : AppColors.success,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted || selectedProduct == null) {
+      return;
+    }
+
+    setState(() {
+      _selected = selectedProduct;
+      _setQuantity(1);
+    });
+  }
+
   @override
   void dispose() {
     _qtyCtrl.removeListener(_handleQuantityChanged);
@@ -208,52 +493,116 @@ class _TransactionPageState extends State<TransactionPage> {
                     radius: 12,
                   )
                 else
-                  DropdownButtonFormField<int>(
-                    value: _selected?.id,
-                    hint: const Text('Pilih produk...'),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: AppColors.surface,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.border),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.border),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: AppColors.primary,
-                          width: 1.5,
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: _openProductPicker,
+                      child: Ink(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: AppColors.border),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 14,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLight,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Icon(
+                                Icons.shopping_bag_outlined,
+                                color: AppColors.primary,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _selected == null
+                                  ? Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Pilih produk',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Tap untuk memilih produk yang terjual',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                color: AppColors.textSecondary,
+                                              ),
+                                        ),
+                                      ],
+                                    )
+                                  : Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _selected!.productName,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${_selected!.priceFormatted} • Stok $_selectedStock',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                color: AppColors.textSecondary,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                            ),
+                            const SizedBox(width: 12),
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: AppColors.background,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.expand_more_rounded,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      prefixIcon: const Icon(
-                        Icons.shopping_bag_outlined,
-                        size: 20,
-                      ),
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                    items: _products
-                        .map(
-                          (p) => DropdownMenuItem<int>(
-                            value: p.id,
-                            child: Text('${p.productName} (Stok: ${p.stock})'),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) => setState(() {
-                      _selected = value == null
-                          ? null
-                          : _products.firstWhere(
-                              (p) => p.id == value,
-                              orElse: () => _products.isNotEmpty
-                                  ? _products.first
-                                  : throw StateError('No product found'),
-                            );
-                      _setQuantity(1);
-                    }),
                   ),
 
                 if (_selected != null) ...[
@@ -474,7 +823,7 @@ class _TransactionPageState extends State<TransactionPage> {
                       color: AppColors.successLight,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppColors.success.withOpacity(0.3),
+                        color: AppColors.success.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Row(

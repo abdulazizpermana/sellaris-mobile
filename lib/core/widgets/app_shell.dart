@@ -16,12 +16,12 @@ class _AppShellState extends State<AppShell> {
 
   static const _tabs = ['Dashboard', 'AI Studio', 'Produk', 'Profil'];
 
-  static final _pages = [
-    const DashboardPage(),
-    const AiStudioPage(),
-    const ProductPage(),
-    const ProfilePage(),
-  ];
+  List<Widget> get _pages => const [
+        DashboardPage(),
+        AiStudioPage(),
+        ProductPage(),
+        ProfilePage(),
+      ];
 
   void _onTabSelected(int index) {
     setState(() {

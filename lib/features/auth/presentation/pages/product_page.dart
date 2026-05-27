@@ -10,6 +10,7 @@ import '../bloc/product_bloc.dart';
 import 'add_product_page.dart';
 import 'ai_all_result_page.dart';
 import 'ai_result_page.dart';
+import '../../../product/presentation/pages/product_detail_page.dart';
 
 class ProductPage extends StatelessWidget {
   const ProductPage({super.key});
@@ -171,6 +172,7 @@ class _ProductViewState extends State<_ProductView> {
                       child: _ProductCard(
                         product: product,
                         isGeneratingAi: _generatingProductId == product.id,
+                        onTap: () => _openProductDetailPage(ctx, product),
                         onEdit: () => _openEditProductPage(ctx, product),
                         onAiTap: () => _generateAi(ctx, product),
                         onDelete: () => _confirmDelete(ctx, product),
@@ -203,6 +205,14 @@ class _ProductViewState extends State<_ProductView> {
     }
 
     if (state is ProductAiAllSuccess) {
+      return state.products;
+    }
+
+    if (state is ProductAiHistoryLoaded) {
+      return state.products;
+    }
+
+    if (state is ProductError) {
       return state.products;
     }
 
@@ -1080,6 +1090,25 @@ class _ProductViewState extends State<_ProductView> {
     );
   }
 
+  Future<void> _openProductDetailPage(
+    BuildContext context,
+    ProductModel product,
+  ) async {
+    final shouldRefresh = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: context.read<ProductBloc>(),
+          child: ProductDetailPage(product: product),
+        ),
+      ),
+    );
+
+    if (shouldRefresh == true && context.mounted) {
+      context.read<ProductBloc>().add(ProductLoadRequested());
+    }
+  }
+
   void _showSnackBar(
     BuildContext context, {
     required String message,
@@ -1101,6 +1130,7 @@ class _ProductViewState extends State<_ProductView> {
 class _ProductCard extends StatelessWidget {
   final ProductModel product;
   final bool isGeneratingAi;
+  final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onAiTap;
   final VoidCallback onDelete;
@@ -1108,6 +1138,7 @@ class _ProductCard extends StatelessWidget {
   const _ProductCard({
     required this.product,
     required this.isGeneratingAi,
+    required this.onTap,
     required this.onEdit,
     required this.onAiTap,
     required this.onDelete,
@@ -1120,224 +1151,240 @@ class _ProductCard extends StatelessWidget {
     final hasDescription = product.description?.trim().isNotEmpty == true;
     final hasTargetMarket = product.targetMarket?.trim().isNotEmpty == true;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isLowStock
-              ? AppColors.warning.withValues(alpha: 0.35)
-              : AppColors.border,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isLowStock
+                  ? AppColors.warning.withValues(alpha: 0.35)
+                  : AppColors.border,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: product.imageUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: product.imageUrl!,
-                          width: 76,
-                          height: 76,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => const ShimmerBox(
-                            width: 76,
-                            height: 76,
-                            radius: 18,
-                          ),
-                          errorWidget: (context, url, error) => _placeholder(),
-                        )
-                      : _placeholder(),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.productName,
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: product.imageUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: product.imageUrl!,
+                              width: 76,
+                              height: 76,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => const ShimmerBox(
+                                width: 76,
+                                height: 76,
+                                radius: 18,
+                              ),
+                              errorWidget: (context, url, error) =>
+                                  _placeholder(),
+                            )
+                          : _placeholder(),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            product.productName,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
                                   fontWeight: FontWeight.w700,
                                 ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        product.priceFormatted,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                      if (hasDescription) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          product.description!,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            product.priceFormatted,
+                            style:
+                                Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                          ),
+                          if (hasDescription) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              product.description!,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
                                     color: AppColors.textSecondary,
                                     height: 1.45,
                                   ),
-                        ),
-                      ],
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _ProductTag(
-                            icon: Icons.inventory_2_outlined,
-                            label: 'Stok ${product.stock}',
-                            backgroundColor: isLowStock
-                                ? AppColors.warningLight
-                                : AppColors.successLight,
-                            textColor: isLowStock
-                                ? AppColors.warning
-                                : AppColors.success,
-                          ),
-                          _ProductTag(
-                            icon: hasAiContent
-                                ? Icons.auto_awesome_rounded
-                                : Icons.schedule_rounded,
-                            label: hasAiContent ? 'AI Ready' : 'Belum Generate',
-                            backgroundColor: hasAiContent
-                                ? AppColors.primaryLight
-                                : AppColors.background,
-                            textColor: hasAiContent
-                                ? AppColors.primary
-                                : AppColors.textSecondary,
-                          ),
-                          _ProductTag(
-                            icon: product.isActive
-                                ? Icons.check_circle_outline_rounded
-                                : Icons.pause_circle_outline_rounded,
-                            label: product.isActive ? 'Aktif' : 'Nonaktif',
-                            backgroundColor: product.isActive
-                                ? AppColors.successLight
-                                : AppColors.background,
-                            textColor: product.isActive
-                                ? AppColors.success
-                                : AppColors.textSecondary,
-                          ),
-                        ],
-                      ),
-                      if (hasTargetMarket) ...[
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.groups_2_outlined,
-                              size: 16,
-                              color: AppColors.textSecondary,
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'Target: ${product.targetMarket!}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: AppColors.textSecondary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                              ),
                             ),
                           ],
-                        ),
-                      ],
-                    ],
-                  ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _ProductTag(
+                                icon: Icons.inventory_2_outlined,
+                                label: 'Stok ${product.stock}',
+                                backgroundColor: isLowStock
+                                    ? AppColors.warningLight
+                                    : AppColors.successLight,
+                                textColor: isLowStock
+                                    ? AppColors.warning
+                                    : AppColors.success,
+                              ),
+                              _ProductTag(
+                                icon: hasAiContent
+                                    ? Icons.auto_awesome_rounded
+                                    : Icons.schedule_rounded,
+                                label: hasAiContent
+                                    ? 'AI Ready'
+                                    : 'Belum Generate',
+                                backgroundColor: hasAiContent
+                                    ? AppColors.primaryLight
+                                    : AppColors.background,
+                                textColor: hasAiContent
+                                    ? AppColors.primary
+                                    : AppColors.textSecondary,
+                              ),
+                              _ProductTag(
+                                icon: product.isActive
+                                    ? Icons.check_circle_outline_rounded
+                                    : Icons.pause_circle_outline_rounded,
+                                label: product.isActive ? 'Aktif' : 'Nonaktif',
+                                backgroundColor: product.isActive
+                                    ? AppColors.successLight
+                                    : AppColors.background,
+                                textColor: product.isActive
+                                    ? AppColors.success
+                                    : AppColors.textSecondary,
+                              ),
+                            ],
+                          ),
+                          if (hasTargetMarket) ...[
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.groups_2_outlined,
+                                  size: 16,
+                                  color: AppColors.textSecondary,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'Target: ${product.targetMarket!}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: AppColors.textSecondary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Divider(
-              height: 1,
-              thickness: 1,
-              color: AppColors.border.withValues(alpha: 0.8),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: onEdit,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
+                const SizedBox(height: 16),
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: AppColors.border.withValues(alpha: 0.8),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onEdit,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          minimumSize: const Size.fromHeight(46),
+                          side: const BorderSide(color: AppColors.border),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        label: const Text('Edit'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onDelete,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          minimumSize: const Size.fromHeight(46),
+                          side: const BorderSide(color: AppColors.border),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        icon:
+                            const Icon(Icons.delete_outline_rounded, size: 18),
+                        label: const Text('Hapus'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: isGeneratingAi ? null : onAiTap,
+                    style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(46),
-                      side: const BorderSide(color: AppColors.border),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    label: const Text('Edit'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: onDelete,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      minimumSize: const Size.fromHeight(46),
-                      side: const BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
+                    icon: isGeneratingAi
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.auto_awesome_rounded, size: 18),
+                    label: Text(
+                      isGeneratingAi ? 'Membuat...' : 'Generate AI',
                     ),
-                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                    label: const Text('Hapus'),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: isGeneratingAi ? null : onAiTap,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(46),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                icon: isGeneratingAi
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.auto_awesome_rounded, size: 18),
-                label: Text(
-                  isGeneratingAi ? 'Membuat...' : 'Generate AI',
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

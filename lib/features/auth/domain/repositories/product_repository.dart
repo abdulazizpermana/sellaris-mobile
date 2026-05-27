@@ -21,4 +21,5 @@ abstract class ProductRepository {
     String type,
   });
   Future<AiAllContent> generateAllAiContent(int productId);
+  Future<AiContentHistory> getAiHistory(int productId);
 }

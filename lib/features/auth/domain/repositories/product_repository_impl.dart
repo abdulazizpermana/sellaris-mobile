@@ -12,7 +12,7 @@ class ProductRepositoryImpl implements ProductRepository {
 
   @override
   Future<List<ProductModel>> getProducts() async {
-    final res = await _api.get(AppConstants.products);
+    final res = await _api.get('${AppConstants.products}?per_page=1000');
     final list = res.data['data'] as List;
     return list.map((j) => ProductModel.fromJson(j)).toList();
   }
@@ -92,9 +92,15 @@ class ProductRepositoryImpl implements ProductRepository {
   @override
   Future<AiAllContent> generateAllAiContent(int productId) async {
     final res = await _api.post(
-      AppConstants.aiGenerateAll, // ← pakai konstanta
+      AppConstants.aiGenerateAll,
       body: {'product_id': productId},
     );
     return AiAllContent.fromJson(res.data['data']);
+  }
+
+  @override
+  Future<AiContentHistory> getAiHistory(int productId) async {
+    final res = await _api.get('${AppConstants.aiHistory}/$productId');
+    return AiContentHistory.fromJson(res.data);
   }
 }

@@ -77,6 +77,15 @@ class ProductAiGenerateAllRequested extends ProductEvent {
   List<Object?> get props => [productId, productName];
 }
 
+class ProductAiHistoryRequested extends ProductEvent {
+  final int productId;
+
+  const ProductAiHistoryRequested(this.productId);
+
+  @override
+  List<Object?> get props => [productId];
+}
+
 // ─── States ───────────────────────────────────────────────────
 abstract class ProductState extends Equatable {
   const ProductState();
@@ -143,6 +152,16 @@ class ProductAiAllSuccess extends ProductState {
   List<Object?> get props => [aiContent, productName, products];
 }
 
+class ProductAiHistoryLoaded extends ProductState {
+  final AiContentHistory history;
+  final List<ProductModel> products;
+
+  const ProductAiHistoryLoaded(this.history, this.products);
+
+  @override
+  List<Object?> get props => [history, products];
+}
+
 class ProductError extends ProductState {
   final String message;
   final List<ProductModel> products;
@@ -163,6 +182,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     on<ProductDeleteRequested>(_onDelete);
     on<ProductAiGenerateRequested>(_onAiGenerate);
     on<ProductAiGenerateAllRequested>(_onAiGenerateAll);
+    on<ProductAiHistoryRequested>(_onAiHistoryRequested);
   }
 
   Future<void> _onLoad(
@@ -283,19 +303,44 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     ProductAiGenerateAllRequested e,
     Emitter<ProductState> emit,
   ) async {
-    emit(ProductLoading()); // ← selalu emit loading, hapus kondisi if/else
+    emit(ProductLoading());
     try {
       final ai = await _repo.generateAllAiContent(e.productId);
       emit(ProductAiAllSuccess(ai, e.productName, _products));
     } on ValidationException catch (ex) {
       emit(ProductError(
-          _mapAiError(ex.message, ex.errors))); // ← 1 parameter saja
+        _mapAiError(ex.message, ex.errors),
+        List<ProductModel>.from(_products),
+      ));
     } on ApiException catch (ex) {
-      emit(ProductError(_mapAiError(ex.message, null))); // ← 1 parameter saja
-    } catch (e) {
-      print('=== UNKNOWN ERROR: $e'); // ← tambah sementara untuk debug
-      emit(const ProductError(
+      emit(ProductError(
+        _mapAiError(ex.message, null),
+        List<ProductModel>.from(_products),
+      ));
+    } catch (_) {
+      emit(ProductError(
         'Kami sedang kesulitan membuat semua konten. Silakan coba lagi sebentar.',
+        List<ProductModel>.from(_products),
+      ));
+    }
+  }
+
+  Future<void> _onAiHistoryRequested(
+    ProductAiHistoryRequested e,
+    Emitter<ProductState> emit,
+  ) async {
+    try {
+      final history = await _repo.getAiHistory(e.productId);
+      emit(ProductAiHistoryLoaded(
+        history,
+        List<ProductModel>.from(_products),
+      ));
+    } on ApiException catch (ex) {
+      emit(ProductError(ex.message, List<ProductModel>.from(_products)));
+    } catch (_) {
+      emit(ProductError(
+        'Gagal memuat riwayat konten AI',
+        List<ProductModel>.from(_products),
       ));
     }
   }
