@@ -3,15 +3,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import '../../../../core/constants/route_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/shared_widgets.dart';
 import '../../../ai/presentation/pages/ai_studio_page.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../dashboard/presentation/widgets/sellaris_score_card.dart';
+import '../../../transaction/presentation/pages/transaction_history_page.dart';
 import '../bloc/dashboard_bloc.dart';
 import '../../data/models/dashboard_model.dart';
-import '../../../dashboard/presentation/widgets/sellaris_score_card.dart';
+import 'transaction_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -37,6 +38,22 @@ class _DashboardView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.success,
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        label: const Text(
+          'Catat Penjualan',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const TransactionPage()),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: BlocBuilder<DashboardBloc, DashboardState>(
         builder: (ctx, state) {
           return RefreshIndicator(
@@ -176,14 +193,14 @@ class _DashboardView extends StatelessWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        const ShimmerBox(
+                        SizedBox(height: 12),
+                        ShimmerBox(
                           width: double.infinity,
                           height: 80,
                           radius: 16,
                         ),
-                        const SizedBox(height: 12),
-                        const ShimmerBox(
+                        SizedBox(height: 12),
+                        ShimmerBox(
                           width: double.infinity,
                           height: 120,
                           radius: 16,
@@ -226,23 +243,27 @@ class _DashboardView extends StatelessWidget {
                           },
                         ),
                         const SizedBox(height: 18),
-                        const _DashboardNavigationSection(),
+                        _RecentTransactionsSection(
+                          transactions:
+                              state.data.recentTransactions.take(3).toList(),
+                        ),
                         const SizedBox(height: 18),
-                        const SectionHeader(title: 'Ringkasan Usaha'),
+                        const SectionHeader(title: 'Produk Terlaris'),
                         const SizedBox(height: 10),
                         _BestSellerCard(product: state.data.bestSellingProduct),
-                        const SizedBox(height: 12),
                         if (state.data.lowStockProducts.isNotEmpty) ...[
+                          const SizedBox(height: 18),
+                          const SectionHeader(title: 'Stok Menipis'),
+                          const SizedBox(height: 10),
                           ...state.data.lowStockProducts.map(
                             (p) => Padding(
                               padding: const EdgeInsets.only(bottom: 10),
                               child: _LowStockItem(product: p),
                             ),
                           ),
-                          const SizedBox(height: 4),
                         ],
                         if (state.data.lastGeneratedCaption != null) ...[
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 18),
                           _LastCaptionCard(
                             caption: state.data.lastGeneratedCaption!,
                           ),
@@ -414,128 +435,151 @@ class _DashboardInfoCard extends StatelessWidget {
   }
 }
 
-class _DashboardNavigationSection extends StatelessWidget {
-  const _DashboardNavigationSection();
+class _RecentTransactionsSection extends StatelessWidget {
+  final List<RecentTransaction> transactions;
+
+  const _RecentTransactionsSection({required this.transactions});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Navigasi Cepat'),
+        Row(
+          children: [
+            const Expanded(
+              child: SectionHeader(title: 'Transaksi Terbaru'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const TransactionHistoryPage(),
+                  ),
+                );
+              },
+              child: const Text('Lihat Semua →'),
+            ),
+          ],
+        ),
         const SizedBox(height: 10),
-        Text(
-          'Bagian ini dapat diklik untuk masuk ke halaman pengelolaan.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-        ),
-        const SizedBox(height: 14),
-        _DashboardActionCard(
-          title: 'Produk Saya',
-          subtitle: 'Tambah, edit, dan cek daftar produk',
-          icon: Icons.shopping_bag_outlined,
-          color: AppColors.primary,
-          onTap: () => Navigator.pushNamed(context, AppRoutes.product),
-        ),
-        const SizedBox(height: 12),
-        _DashboardActionCard(
-          title: 'Catat Transaksi',
-          subtitle: 'Masukkan transaksi penjualan baru',
-          icon: Icons.receipt_long_outlined,
-          color: AppColors.success,
-          onTap: () => Navigator.pushNamed(context, AppRoutes.transaction),
-        ),
-        const SizedBox(height: 12),
-        _DashboardActionCard(
-          title: 'Riwayat Transaksi',
-          subtitle: 'Lihat daftar transaksi yang sudah tercatat',
-          icon: Icons.history_rounded,
-          color: AppColors.warning,
-          onTap: () =>
-              Navigator.pushNamed(context, AppRoutes.transactionHistory),
-        ),
+        if (transactions.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Text(
+              'Belum ada transaksi hari ini',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+            ),
+          )
+        else
+          ...transactions.map(
+            (transaction) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: RecentTransactionItem(transaction: transaction),
+            ),
+          ),
       ],
     );
   }
 }
 
-class _DashboardActionCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-  const _DashboardActionCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
+class RecentTransactionItem extends StatelessWidget {
+  final RecentTransaction transaction;
+
+  const RecentTransactionItem({super.key, required this.transaction});
+
+  String _formatDateLabel(String value) {
+    try {
+      final date = DateTime.parse(value);
+      return DateFormat('d MMM yyyy', 'id_ID').format(date);
+    } catch (_) {
+      return value;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: Ink(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.035),
-                blurRadius: 14,
-                offset: const Offset(0, 8),
-              ),
-            ],
+    final subtitle = '${_formatDateLabel(transaction.transactionDate)} • '
+        '${transaction.quantity} item';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.successLight,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.receipt_long_rounded,
+              color: AppColors.success,
+            ),
           ),
-          child: Row(
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  transaction.productName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: color, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+              Text(
+                transaction.totalFormatted.isNotEmpty
+                    ? transaction.totalFormatted
+                    : NumberFormat('Rp #,###', 'id_ID')
+                        .format(transaction.totalPrice),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: AppColors.success,
+                      fontWeight: FontWeight.w800,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                            height: 1.4,
-                          ),
-                    ),
-                  ],
-                ),
               ),
-              const SizedBox(width: 12),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.textSecondary,
+              const SizedBox(height: 4),
+              Text(
+                'x${transaction.quantity}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }

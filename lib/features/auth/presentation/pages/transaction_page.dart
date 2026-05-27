@@ -9,7 +9,6 @@ import '../../../../core/constants/route_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/shared_widgets.dart';
-import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../bloc/transaction_bloc.dart';
 
 class TransactionPage extends StatefulWidget {
@@ -93,22 +92,7 @@ class _TransactionPageState extends State<TransactionPage> {
       create: (_) => sl<TransactionBloc>(),
       child: Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          title: const Text('Catat Penjualan'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.logout_rounded),
-              onPressed: () {
-                context.read<AuthBloc>().add(AuthLogoutRequested());
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  AppRoutes.login,
-                  (route) => false,
-                );
-              },
-            ),
-          ],
-        ),
+        appBar: AppBar(title: const Text('Catat Penjualan')),
         body: BlocConsumer<TransactionBloc, TransactionState>(
           listener: (ctx, state) {
             if (state is TransactionSuccess) {

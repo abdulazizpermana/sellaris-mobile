@@ -65,6 +65,36 @@ class LowStockProduct {
       );
 }
 
+class RecentTransaction {
+  final int id;
+  final String productName;
+  final double totalPrice;
+  final String totalFormatted;
+  final String transactionDate;
+  final int quantity;
+
+  const RecentTransaction({
+    required this.id,
+    required this.productName,
+    required this.totalPrice,
+    required this.totalFormatted,
+    required this.transactionDate,
+    required this.quantity,
+  });
+
+  factory RecentTransaction.fromJson(Map<String, dynamic> j) =>
+      RecentTransaction(
+        id: _parseInt(j['id']),
+        productName:
+            (j['product_name'] ?? j['product']?['product_name'])?.toString() ??
+                '',
+        totalPrice: _parseDouble(j['total_price']),
+        totalFormatted: j['total_formatted']?.toString() ?? '',
+        transactionDate: j['transaction_date']?.toString() ?? '',
+        quantity: _parseInt(j['quantity']),
+      );
+}
+
 class DashboardData {
   final TodaySales todaySales;
   final int totalTransactions;
@@ -72,6 +102,7 @@ class DashboardData {
   final int aiContentsGenerated;
   final BestProduct? bestSellingProduct;
   final List<LowStockProduct> lowStockProducts;
+  final List<RecentTransaction> recentTransactions;
   final String? lastGeneratedCaption;
 
   const DashboardData({
@@ -80,7 +111,8 @@ class DashboardData {
     required this.totalProducts,
     required this.aiContentsGenerated,
     this.bestSellingProduct,
-    required this.lowStockProducts,
+    this.lowStockProducts = const [],
+    this.recentTransactions = const [],
     this.lastGeneratedCaption,
   });
 
@@ -120,6 +152,11 @@ class DashboardData {
     ]);
     final latestAiContent =
         data['latest_ai_content'] ?? data['latestAiContent'];
+    final recentTransactionsList = getList(data, [
+      'recent_transactions',
+      'recentTransactions',
+      'transactions',
+    ]);
     final lastCaption = latestAiContent is Map<String, dynamic>
         ? latestAiContent['content']
         : (data['last_generated_caption'] ?? data['lastGeneratedCaption']);
@@ -139,6 +176,10 @@ class DashboardData {
       lowStockProducts: lowStockList
           .whereType<Map<String, dynamic>>()
           .map((p) => LowStockProduct.fromJson(p))
+          .toList(),
+      recentTransactions: (recentTransactionsList)
+          .whereType<Map<String, dynamic>>()
+          .map((item) => RecentTransaction.fromJson(item))
           .toList(),
       lastGeneratedCaption: lastCaption?.toString(),
     );
