@@ -7,9 +7,13 @@ int _parseInt(dynamic value) {
 }
 
 double _parseDouble(dynamic value) {
-  final stringValue = value?.toString();
+  if (value is num) return value.toDouble();
+
+  final stringValue = value?.toString().trim();
   if (stringValue == null || stringValue.isEmpty) return 0.0;
-  return double.tryParse(stringValue) ?? 0.0;
+
+  final normalizedValue = stringValue.replaceAll(',', '');
+  return double.tryParse(normalizedValue) ?? 0.0;
 }
 
 class TodaySales {
@@ -22,12 +26,12 @@ class TodaySales {
     required this.date,
   });
   factory TodaySales.fromJson(Map<String, dynamic> j) => TodaySales(
-    totalRevenue: _parseDouble(j['total_revenue']),
-    totalTransactions: _parseInt(
-      j['total_transactions'] ?? j['totalTransactions'],
-    ),
-    date: j['date']?.toString() ?? '',
-  );
+        totalRevenue: _parseDouble(j['total_revenue']),
+        totalTransactions: _parseInt(
+          j['total_transactions'] ?? j['totalTransactions'],
+        ),
+        date: j['date']?.toString() ?? '',
+      );
 }
 
 class BestProduct {
@@ -40,10 +44,10 @@ class BestProduct {
     required this.totalSold,
   });
   factory BestProduct.fromJson(Map<String, dynamic> j) => BestProduct(
-    id: _parseInt(j['id']),
-    productName: j['product_name']?.toString() ?? '',
-    totalSold: _parseInt(j['total_sold']),
-  );
+        id: _parseInt(j['id']),
+        productName: j['product_name']?.toString() ?? '',
+        totalSold: _parseInt(j['total_sold']),
+      );
 }
 
 class LowStockProduct {
@@ -55,10 +59,10 @@ class LowStockProduct {
     required this.stock,
   });
   factory LowStockProduct.fromJson(Map<String, dynamic> j) => LowStockProduct(
-    id: _parseInt(j['id']),
-    productName: j['product_name']?.toString() ?? '',
-    stock: _parseInt(j['stock']),
-  );
+        id: _parseInt(j['id']),
+        productName: j['product_name']?.toString() ?? '',
+        stock: _parseInt(j['stock']),
+      );
 }
 
 class DashboardData {
