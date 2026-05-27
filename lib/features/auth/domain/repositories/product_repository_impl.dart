@@ -49,7 +49,23 @@ class ProductRepositoryImpl implements ProductRepository {
 
   @override
   Future<ProductModel> updateProduct(int id, Map<String, dynamic> data) async {
-    final res = await _api.put('${AppConstants.products}/$id', body: data);
+    final image = data['image'];
+    final fields = <String, String>{
+      'product_name': data['product_name']?.toString() ?? '',
+      'price': data['price']?.toString() ?? '0',
+      'stock': data['stock']?.toString() ?? '0',
+      'description': data['description']?.toString() ?? '',
+      'target_market': data['target_market']?.toString() ?? '',
+    };
+
+    final res = image is File
+        ? await _api.putMultipart(
+            '${AppConstants.products}/$id',
+            fields: fields,
+            imageFile: image,
+          )
+        : await _api.put('${AppConstants.products}/$id', body: fields);
+
     return ProductModel.fromJson(res.data['data']);
   }
 

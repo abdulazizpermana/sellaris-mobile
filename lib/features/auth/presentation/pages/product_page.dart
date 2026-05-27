@@ -171,6 +171,7 @@ class _ProductViewState extends State<_ProductView> {
                       child: _ProductCard(
                         product: product,
                         isGeneratingAi: _generatingProductId == product.id,
+                        onEdit: () => _openEditProductPage(ctx, product),
                         onAiTap: () => _generateAi(ctx, product),
                         onDelete: () => _confirmDelete(ctx, product),
                       ),
@@ -704,6 +705,22 @@ class _ProductViewState extends State<_ProductView> {
     }
   }
 
+  void _openEditProductPage(BuildContext context, ProductModel product) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: context.read<ProductBloc>(),
+          child: AddProductPage(product: product),
+        ),
+      ),
+    );
+
+    if (result == true && context.mounted) {
+      context.read<ProductBloc>().add(ProductLoadRequested());
+    }
+  }
+
   void _generateAi(BuildContext ctx, ProductModel product) {
     setState(() => _generatingProductId = product.id);
     _showLoadingDialog(ctx, product.productName);
@@ -1084,12 +1101,14 @@ class _ProductViewState extends State<_ProductView> {
 class _ProductCard extends StatelessWidget {
   final ProductModel product;
   final bool isGeneratingAi;
+  final VoidCallback onEdit;
   final VoidCallback onAiTap;
   final VoidCallback onDelete;
 
   const _ProductCard({
     required this.product,
     required this.isGeneratingAi,
+    required this.onEdit,
     required this.onAiTap,
     required this.onDelete,
   });
@@ -1261,6 +1280,22 @@ class _ProductCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
+                    onPressed: onEdit,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      minimumSize: const Size.fromHeight(46),
+                      side: const BorderSide(color: AppColors.border),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('Edit'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
                     onPressed: onDelete,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.error,
@@ -1274,32 +1309,33 @@ class _ProductCard extends StatelessWidget {
                     label: const Text('Hapus'),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: isGeneratingAi ? null : onAiTap,
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(46),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    icon: isGeneratingAi
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.auto_awesome_rounded, size: 18),
-                    label: Text(
-                      isGeneratingAi ? 'Membuat...' : 'Generate AI',
-                    ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: isGeneratingAi ? null : onAiTap,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(46),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-              ],
+                icon: isGeneratingAi
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.auto_awesome_rounded, size: 18),
+                label: Text(
+                  isGeneratingAi ? 'Membuat...' : 'Generate AI',
+                ),
+              ),
             ),
           ],
         ),

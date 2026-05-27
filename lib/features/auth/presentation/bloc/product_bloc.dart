@@ -31,6 +31,24 @@ class ProductCreateRequested extends ProductEvent {
   });
 }
 
+class ProductUpdateRequested extends ProductEvent {
+  final int id;
+  final String productName, description, targetMarket;
+  final double price;
+  final int stock;
+  final File? image;
+
+  const ProductUpdateRequested({
+    required this.id,
+    required this.productName,
+    required this.price,
+    required this.stock,
+    this.description = '',
+    this.targetMarket = '',
+    this.image,
+  });
+}
+
 class ProductDeleteRequested extends ProductEvent {
   final int id;
   const ProductDeleteRequested(this.id);
@@ -141,6 +159,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   ProductBloc(this._repo) : super(ProductInitial()) {
     on<ProductLoadRequested>(_onLoad);
     on<ProductCreateRequested>(_onCreate);
+    on<ProductUpdateRequested>(_onUpdate);
     on<ProductDeleteRequested>(_onDelete);
     on<ProductAiGenerateRequested>(_onAiGenerate);
     on<ProductAiGenerateAllRequested>(_onAiGenerateAll);
@@ -186,6 +205,30 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     } catch (_) {
       emit(ProductError(
           'Gagal menambahkan produk', List<ProductModel>.from(_products)));
+    }
+  }
+
+  Future<void> _onUpdate(
+      ProductUpdateRequested e, Emitter<ProductState> emit) async {
+    emit(ProductLoading());
+    try {
+      await _repo.updateProduct(e.id, {
+        'product_name': e.productName,
+        'price': e.price,
+        'stock': e.stock,
+        'description': e.description,
+        'target_market': e.targetMarket,
+        'image': e.image,
+      });
+      _products = await _repo.getProducts();
+      emit(ProductActionSuccess('Produk berhasil diperbarui! ✅', _products));
+    } on ValidationException catch (ex) {
+      emit(ProductError(ex.message, List<ProductModel>.from(_products)));
+    } on ApiException catch (ex) {
+      emit(ProductError(ex.message, List<ProductModel>.from(_products)));
+    } catch (_) {
+      emit(ProductError(
+          'Gagal memperbarui produk', List<ProductModel>.from(_products)));
     }
   }
 

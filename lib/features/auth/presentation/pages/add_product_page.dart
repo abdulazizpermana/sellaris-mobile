@@ -7,10 +7,18 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/shared_widgets.dart';
+import '../../data/models/product_model.dart';
 import '../bloc/product_bloc.dart';
 
 class AddProductPage extends StatefulWidget {
-  const AddProductPage({super.key});
+  final ProductModel? product;
+
+  const AddProductPage({
+    super.key,
+    this.product,
+  });
+
+  bool get isEditMode => product != null;
 
   @override
   State<AddProductPage> createState() => _AddProductPageState();
@@ -26,6 +34,22 @@ class _AddProductPageState extends State<AddProductPage> {
 
   File? _image;
   bool _isPickingImage = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final product = widget.product;
+    if (product == null) {
+      return;
+    }
+
+    _nameCtrl.text = product.productName;
+    _priceCtrl.text = _formatPriceInput(product.price);
+    _stockCtrl.text = product.stock.toString();
+    _descCtrl.text = product.description ?? '';
+    _targetCtrl.text = product.targetMarket ?? '';
+  }
 
   @override
   void dispose() {
@@ -73,16 +97,52 @@ class _AddProductPageState extends State<AddProductPage> {
   void _submit() {
     if (!_form.currentState!.validate()) return;
 
+    final price = double.parse(_priceCtrl.text.replaceAll('.', ''));
+    final stock = int.parse(_stockCtrl.text);
+    final description = _descCtrl.text.trim();
+    final targetMarket = _targetCtrl.text.trim();
+    final productName = _nameCtrl.text.trim();
+
+    if (widget.isEditMode) {
+      context.read<ProductBloc>().add(
+            ProductUpdateRequested(
+              id: widget.product!.id,
+              productName: productName,
+              price: price,
+              stock: stock,
+              description: description,
+              targetMarket: targetMarket,
+              image: _image,
+            ),
+          );
+      return;
+    }
+
     context.read<ProductBloc>().add(
           ProductCreateRequested(
-            productName: _nameCtrl.text.trim(),
-            price: double.parse(_priceCtrl.text.replaceAll('.', '')),
-            stock: int.parse(_stockCtrl.text),
-            description: _descCtrl.text.trim(),
-            targetMarket: _targetCtrl.text.trim(),
+            productName: productName,
+            price: price,
+            stock: stock,
+            description: description,
+            targetMarket: targetMarket,
             image: _image,
           ),
         );
+  }
+
+  String _formatPriceInput(double price) {
+    final whole = price.toInt().toString();
+    final buffer = StringBuffer();
+
+    for (var i = 0; i < whole.length; i++) {
+      final positionFromEnd = whole.length - i;
+      buffer.write(whole[i]);
+      if (positionFromEnd > 1 && positionFromEnd % 3 == 1) {
+        buffer.write('.');
+      }
+    }
+
+    return buffer.toString();
   }
 
   @override
@@ -90,7 +150,7 @@ class _AddProductPageState extends State<AddProductPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Tambah Produk'),
+        title: Text(widget.isEditMode ? 'Edit Produk' : 'Tambah Produk'),
         centerTitle: false,
       ),
       body: BlocConsumer<ProductBloc, ProductState>(
@@ -132,7 +192,9 @@ class _AddProductPageState extends State<AddProductPage> {
                     const SizedBox(height: 24),
                     LoadingButton(
                       isLoading: isLoading,
-                      label: 'Simpan Produk',
+                      label: widget.isEditMode
+                          ? 'Simpan Perubahan'
+                          : 'Simpan Produk',
                       onPressed: _submit,
                     ),
                     const SizedBox(height: 14),
@@ -206,7 +268,7 @@ class _AddProductPageState extends State<AddProductPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Produk Baru',
+                      widget.isEditMode ? 'Edit Produk' : 'Produk Baru',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
@@ -214,7 +276,9 @@ class _AddProductPageState extends State<AddProductPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Lengkapi informasi produk agar katalog lebih rapi dan AI dapat membuat konten yang lebih relevan.',
+                      widget.isEditMode
+                          ? 'Perbarui informasi produk agar katalog tetap rapi dan konten AI tetap relevan.'
+                          : 'Lengkapi informasi produk agar katalog lebih rapi dan AI dapat membuat konten yang lebih relevan.',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Colors.white.withValues(alpha: 0.82),
                             height: 1.45,

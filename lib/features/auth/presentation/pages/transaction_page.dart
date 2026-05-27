@@ -29,6 +29,7 @@ class _TransactionPageState extends State<TransactionPage> {
   @override
   void initState() {
     super.initState();
+    _qtyCtrl.addListener(_handleQuantityChanged);
     _loadProducts();
   }
 
@@ -47,9 +48,39 @@ class _TransactionPageState extends State<TransactionPage> {
     }
   }
 
+  int get _selectedStock => _selected?.stock ?? 0;
+
+  bool get _isOutOfStock => _selected != null && _selectedStock <= 0;
+
+  bool get _isLowStock =>
+      _selected != null && _selectedStock > 0 && _selectedStock <= 5;
+
   double get _total {
     final qty = int.tryParse(_qtyCtrl.text) ?? 0;
     return (_selected?.price ?? 0) * qty;
+  }
+
+  void _setQuantity(int value) {
+    final normalizedValue = value < 1 ? 1 : value;
+    final maxStock = _selectedStock;
+
+    if (_selected != null && maxStock > 0 && normalizedValue > maxStock) {
+      _qtyCtrl.text = maxStock.toString();
+      return;
+    }
+
+    _qtyCtrl.text = normalizedValue.toString();
+  }
+
+  void _showWarningSnackBar(BuildContext ctx, String message) {
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.warning,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   void _submit(BuildContext ctx) {
@@ -66,16 +97,26 @@ class _TransactionPageState extends State<TransactionPage> {
     }
     final qty = int.tryParse(_qtyCtrl.text) ?? 0;
     if (qty <= 0) {
-      ScaffoldMessenger.of(ctx).showSnackBar(
-        const SnackBar(
-          content: Text('Jumlah harus lebih dari 0'),
-          backgroundColor: AppColors.warning,
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.all(16),
-        ),
+      _showWarningSnackBar(ctx, 'Jumlah harus lebih dari 0');
+      return;
+    }
+
+    if (_isOutOfStock) {
+      _showWarningSnackBar(
+        ctx,
+        'Stok produk sudah habis. Transaksi tidak bisa ditambahkan.',
       );
       return;
     }
+
+    if (qty > _selectedStock) {
+      _showWarningSnackBar(
+        ctx,
+        'Jumlah melebihi stok tersedia. Maksimal $_selectedStock item.',
+      );
+      return;
+    }
+
     ctx.read<TransactionBloc>().add(
           TransactionCreateRequested(
             productId: _selected!.id,
@@ -84,6 +125,35 @@ class _TransactionPageState extends State<TransactionPage> {
             date: DateFormat('yyyy-MM-dd').format(_date),
           ),
         );
+  }
+
+  void _handleQuantityChanged() {
+    final parsed = int.tryParse(_qtyCtrl.text);
+    if (parsed == null) {
+      return;
+    }
+
+    if (_selected != null && _selectedStock > 0 && parsed > _selectedStock) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+
+        setState(() => _setQuantity(_selectedStock));
+        _showWarningSnackBar(
+          context,
+          'Jumlah maksimal untuk produk ini adalah $_selectedStock item.',
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _qtyCtrl.removeListener(_handleQuantityChanged);
+    _qtyCtrl.dispose();
+    _notesCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -182,6 +252,7 @@ class _TransactionPageState extends State<TransactionPage> {
                                   ? _products.first
                                   : throw StateError('No product found'),
                             );
+                      _setQuantity(1);
                     }),
                   ),
 
@@ -204,17 +275,74 @@ class _TransactionPageState extends State<TransactionPage> {
                           size: 16,
                         ),
                         const SizedBox(width: 6),
-                        Text(
-                          'Harga: ${_selected!.priceFormatted}',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                        Expanded(
+                          child: Text(
+                            'Harga: ${_selected!.priceFormatted} • Stok tersedia: $_selectedStock',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
                         ),
                       ],
                     ),
                   ),
+                  if (_isOutOfStock || _isLowStock) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _isOutOfStock
+                            ? AppColors.error.withValues(alpha: 0.08)
+                            : AppColors.warningLight,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: _isOutOfStock
+                              ? AppColors.error.withValues(alpha: 0.24)
+                              : AppColors.warning.withValues(alpha: 0.24),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            _isOutOfStock
+                                ? Icons.error_outline_rounded
+                                : Icons.warning_amber_rounded,
+                            color: _isOutOfStock
+                                ? AppColors.error
+                                : AppColors.warning,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _isOutOfStock
+                                  ? 'Stok produk habis. Produk ini tidak bisa dipakai untuk transaksi baru.'
+                                  : 'Stok tersisa hanya $_selectedStock item. Jumlah penjualan tidak boleh melebihi stok tersedia.',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: _isOutOfStock
+                                        ? AppColors.error
+                                        : AppColors.warning,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.4,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
 
                 const SizedBox(height: 20),
@@ -231,7 +359,7 @@ class _TransactionPageState extends State<TransactionPage> {
                       onPressed: () {
                         final v = int.tryParse(_qtyCtrl.text) ?? 1;
                         if (v > 1) {
-                          setState(() => _qtyCtrl.text = (v - 1).toString());
+                          setState(() => _setQuantity(v - 1));
                         }
                       },
                       icon: const Icon(Icons.remove_circle_outline_rounded),
@@ -249,7 +377,24 @@ class _TransactionPageState extends State<TransactionPage> {
                     IconButton(
                       onPressed: () {
                         final v = int.tryParse(_qtyCtrl.text) ?? 0;
-                        setState(() => _qtyCtrl.text = (v + 1).toString());
+
+                        if (_selected != null && _selectedStock <= 0) {
+                          _showWarningSnackBar(
+                            ctx,
+                            'Stok produk habis. Tidak bisa menambah jumlah.',
+                          );
+                          return;
+                        }
+
+                        if (_selected != null && v >= _selectedStock) {
+                          _showWarningSnackBar(
+                            ctx,
+                            'Jumlah maksimal untuk produk ini adalah $_selectedStock item.',
+                          );
+                          return;
+                        }
+
+                        setState(() => _setQuantity(v + 1));
                       },
                       icon: const Icon(Icons.add_circle_outline_rounded),
                       color: AppColors.primary,
@@ -355,8 +500,12 @@ class _TransactionPageState extends State<TransactionPage> {
 
                 LoadingButton(
                   isLoading: state is TransactionLoading,
-                  label: '💰 Catat Penjualan',
-                  onPressed: () => _submit(ctx),
+                  label: _isOutOfStock
+                      ? 'Stok Habis'
+                      : _isLowStock
+                          ? '💰 Catat Penjualan (Stok Terbatas)'
+                          : '💰 Catat Penjualan',
+                  onPressed: _isOutOfStock ? null : () => _submit(ctx),
                 ),
 
                 const SizedBox(height: 32),
