@@ -8,6 +8,8 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/widgets/shared_widgets.dart';
 import '../../../ai/presentation/pages/ai_studio_page.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../dashboard/presentation/bloc/monthly_revenue_bloc.dart';
+import '../../../dashboard/presentation/widgets/monthly_revenue_card.dart';
 import '../../../dashboard/presentation/widgets/sellaris_score_card.dart';
 import '../../../transaction/presentation/pages/transaction_history_page.dart';
 import '../bloc/dashboard_bloc.dart';
@@ -19,8 +21,23 @@ class DashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<DashboardBloc>()..add(DashboardLoadRequested()),
+    final now = DateTime.now();
+
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => sl<DashboardBloc>()..add(DashboardLoadRequested()),
+        ),
+        BlocProvider(
+          create: (_) => sl<MonthlyRevenueBloc>()
+            ..add(
+              MonthlyRevenueLoadRequested(
+                year: now.year,
+                month: now.month,
+              ),
+            ),
+        ),
+      ],
       child: const _DashboardView(),
     );
   }
@@ -58,8 +75,16 @@ class _DashboardView extends StatelessWidget {
         builder: (ctx, state) {
           return RefreshIndicator(
             color: AppColors.primary,
-            onRefresh: () async =>
-                ctx.read<DashboardBloc>().add(DashboardLoadRequested()),
+            onRefresh: () async {
+              final now = DateTime.now();
+              ctx.read<DashboardBloc>().add(DashboardLoadRequested());
+              ctx.read<MonthlyRevenueBloc>().add(
+                    MonthlyRevenueLoadRequested(
+                      year: now.year,
+                      month: now.month,
+                    ),
+                  );
+            },
             child: CustomScrollView(
               slivers: [
                 SliverAppBar(
@@ -163,9 +188,16 @@ class _DashboardView extends StatelessWidget {
                         Icons.refresh_rounded,
                         color: Colors.white,
                       ),
-                      onPressed: () => ctx.read<DashboardBloc>().add(
-                            DashboardLoadRequested(),
-                          ),
+                      onPressed: () {
+                        final now = DateTime.now();
+                        ctx.read<DashboardBloc>().add(DashboardLoadRequested());
+                        ctx.read<MonthlyRevenueBloc>().add(
+                              MonthlyRevenueLoadRequested(
+                                year: now.year,
+                                month: now.month,
+                              ),
+                            );
+                      },
                     ),
                   ],
                 ),
@@ -242,6 +274,8 @@ class _DashboardView extends StatelessWidget {
                             );
                           },
                         ),
+                        const SizedBox(height: 18),
+                        const MonthlyRevenueCard(),
                         const SizedBox(height: 18),
                         _RecentTransactionsSection(
                           transactions:

@@ -11,6 +11,9 @@ import 'package:sellari_umkm_frontend/features/auth/domain/repositories/transact
 import 'package:sellari_umkm_frontend/features/auth/presentation/bloc/dashboard_bloc.dart';
 import 'package:sellari_umkm_frontend/features/auth/presentation/bloc/product_bloc.dart';
 import 'package:sellari_umkm_frontend/features/auth/presentation/bloc/transaction_bloc.dart';
+import 'package:sellari_umkm_frontend/features/dashboard/data/repositories/monthly_revenue_repository.dart';
+import 'package:sellari_umkm_frontend/features/dashboard/data/repositories/monthly_revenue_repository_impl.dart';
+import 'package:sellari_umkm_frontend/features/dashboard/presentation/bloc/monthly_revenue_bloc.dart';
 import '../network/api_client.dart';
 import '../storage/secure_storage.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
@@ -36,10 +39,14 @@ Future<void> setupLocator() async {
   sl.registerLazySingleton<DashboardRepository>(
     () => DashboardRepositoryImpl(sl()),
   );
+  sl.registerLazySingleton<MonthlyRevenueRepository>(
+    () => MonthlyRevenueRepositoryImpl(sl()),
+  );
 
   // ─── BLoCs ────────────────────────────────────────────────
   sl.registerFactory<AuthBloc>(() => AuthBloc(sl()));
   sl.registerFactory<ProductBloc>(() => ProductBloc(sl()));
   sl.registerFactory<TransactionBloc>(() => TransactionBloc(sl()));
   sl.registerFactory<DashboardBloc>(() => DashboardBloc(sl()));
+  sl.registerFactory<MonthlyRevenueBloc>(() => MonthlyRevenueBloc(sl()));
 }

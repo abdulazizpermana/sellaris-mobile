@@ -23,6 +23,7 @@ class AppConstants {
   static const String transactions = '/transactions';
   static const String transactionHistory = '/transactions/history'; // ← TAMBAH
   static const String dailyReport = '/transactions/daily-report';
+  static const String monthlyReport = '/reports/monthly';
 
   static const String dashboard = '/dashboard';
 
