@@ -6,8 +6,8 @@ class AppConstants {
   // Device Fisik      → ganti dengan IP komputer kamu
   //                     Cek IP: jalankan 'ipconfig' di CMD Windows
   // Contoh: http://192.168.1.100:8000/api
-  // static const String baseUrl = 'http://10.0.2.2:8000/api';
-  static const String baseUrl = 'https://api.sellaris.web.id/api';
+  static const String baseUrl = 'http://10.0.2.2:8000/api';
+  // static const String baseUrl = 'https://api.sellaris.web.id/api';
 
   // ─── Endpoints ───────────────────────────────────────────────
   static const String register = '/register';

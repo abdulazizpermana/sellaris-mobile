@@ -288,7 +288,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       ));
     } on ApiException catch (ex) {
       emit(ProductError(
-        _mapAiError(ex.message, null),
+        _mapAiError(ex.message, ex.errors),
         List<ProductModel>.from(_products),
       ));
     } catch (_) {
@@ -314,7 +314,7 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       ));
     } on ApiException catch (ex) {
       emit(ProductError(
-        _mapAiError(ex.message, null),
+        _mapAiError(ex.message, ex.errors),
         List<ProductModel>.from(_products),
       ));
     } catch (_) {
@@ -347,6 +347,11 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
 
   String _mapAiError(String message, Map<String, dynamic>? errors) {
     final n = message.toLowerCase();
+
+    if (n.contains('modul ai gagal merespons') ||
+        n.contains('limit harian tercapai')) {
+      return message;
+    }
 
     if (errors != null) {
       if (errors.containsKey('product_id')) {

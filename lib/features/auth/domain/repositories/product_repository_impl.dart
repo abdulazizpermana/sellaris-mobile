@@ -1,10 +1,13 @@
 // lib/features/product/data/repositories/product_repository_impl.dart
 
+import 'dart:convert';
 import 'dart:io';
+import 'package:http/http.dart' as http;
 import '../../data/models/product_model.dart';
 import '../../domain/repositories/product_repository.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/storage/secure_storage.dart';
 
 class ProductRepositoryImpl implements ProductRepository {
   final ApiClient _api;
@@ -91,11 +94,35 @@ class ProductRepositoryImpl implements ProductRepository {
 
   @override
   Future<AiAllContent> generateAllAiContent(int productId) async {
-    final res = await _api.post(
-      AppConstants.aiGenerateAll,
-      body: {'product_id': productId},
+    final token = await SecureStorage().getToken();
+
+    final response = await http.post(
+      Uri.parse('${AppConstants.baseUrl}${AppConstants.aiGenerateAll}'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'product_id': productId}),
     );
-    return AiAllContent.fromJson(res.data['data']);
+
+    final responseBody = utf8.decode(response.bodyBytes);
+    final responseData = jsonDecode(responseBody);
+    print('=== [HTTP STATUS CODE]: ${response.statusCode}');
+    print('=== [HTTP RESPONSE BODY]: $responseBody');
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      if (responseData is Map<String, dynamic>) {
+        throw ApiException(
+          responseData['message']?.toString() ?? 'Terjadi kesalahan',
+          errors: responseData['errors'] as Map<String, dynamic>?,
+        );
+      }
+
+      throw const ApiException('Terjadi kesalahan');
+    }
+
+    return AiAllContent.fromJson(responseData['data']);
   }
 
   @override

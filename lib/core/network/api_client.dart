@@ -29,22 +29,23 @@ class NetworkException implements Exception {
 
 class ApiException implements Exception {
   final String message;
-  const ApiException(this.message);
+  final Map<String, dynamic>? errors;
+  const ApiException(this.message, {this.errors});
   @override
   String toString() => message;
 }
 
 class UnauthorizedException extends ApiException {
-  const UnauthorizedException(super.message);
+  const UnauthorizedException(super.message, {super.errors});
 }
 
 class ValidationException extends ApiException {
-  final Map<String, dynamic>? errors;
-  const ValidationException(super.message, this.errors);
+  const ValidationException(super.message, Map<String, dynamic>? errors)
+      : super(errors: errors);
 }
 
 class ServerException extends ApiException {
-  const ServerException(super.message);
+  const ServerException(super.message, {super.errors});
 }
 
 // ─── API Client ───────────────────────────────────────────────
@@ -211,6 +212,8 @@ class ApiClient {
 
   // ─── Response Handler ─────────────────────────────────────
   ApiResponse _handle(http.Response res) {
+    print('=== API RESPONSE STATUS: ${res.statusCode}');
+    print('=== API RESPONSE BODY: ${res.body}');
     dynamic body;
     try {
       body = jsonDecode(utf8.decode(res.bodyBytes));
@@ -235,20 +238,29 @@ class ApiClient {
       }
       throw ValidationException(msg, errors);
     } else if (res.statusCode == 404) {
+      final errors = body is Map<String, dynamic>
+          ? body['errors'] as Map<String, dynamic>?
+          : null;
       final msg = body is Map<String, dynamic>
           ? body['message'] ?? 'Data tidak ditemukan'
           : 'Data tidak ditemukan';
-      throw ApiException(msg);
+      throw ApiException(msg, errors: errors);
     } else if (res.statusCode >= 500) {
+      final errors = body is Map<String, dynamic>
+          ? body['errors'] as Map<String, dynamic>?
+          : null;
       final msg = body is Map<String, dynamic>
           ? body['message'] ?? 'Server bermasalah, coba lagi nanti'
           : 'Server bermasalah, coba lagi nanti';
-      throw ServerException(msg);
+      throw ServerException(msg, errors: errors);
     } else {
+      final errors = body is Map<String, dynamic>
+          ? body['errors'] as Map<String, dynamic>?
+          : null;
       final msg = body is Map<String, dynamic>
           ? body['message'] ?? 'Terjadi kesalahan'
           : 'Terjadi kesalahan';
-      throw ApiException(msg);
+      throw ApiException(msg, errors: errors);
     }
   }
 }
