@@ -39,6 +39,7 @@ class _ProductViewState extends State<_ProductView> {
   String _filter = 'Semua';
   int? _generatingProductId;
   bool _isLoadingDialogVisible = false;
+  bool _isAiQuotaDialogVisible = false;
 
   @override
   void dispose() {
@@ -126,11 +127,19 @@ class _ProductViewState extends State<_ProductView> {
           if (state is ProductError) {
             _hideLoadingDialog(ctx);
             setState(() => _generatingProductId = null);
-            _showSnackBar(
-              ctx,
-              message: state.message,
-              backgroundColor: AppColors.error,
-            );
+
+            if (_isAiQuotaError(state.message)) {
+              _showAiQuotaDialog(
+                ctx,
+                message: state.message,
+              );
+            } else {
+              _showSnackBar(
+                ctx,
+                message: state.message,
+                backgroundColor: AppColors.error,
+              );
+            }
           }
         },
         builder: (ctx, state) {
@@ -138,7 +147,7 @@ class _ProductViewState extends State<_ProductView> {
             return _buildShimmer();
           }
 
-          if (state is ProductError && state is! ProductLoaded) {
+          if (state is ProductError && state.products.isEmpty) {
             return ErrorView(
               message: state.message,
               onRetry: () =>
@@ -1107,6 +1116,178 @@ class _ProductViewState extends State<_ProductView> {
     if (shouldRefresh == true && context.mounted) {
       context.read<ProductBloc>().add(ProductLoadRequested());
     }
+  }
+
+  bool _isAiQuotaError(String message) {
+    final normalized = message.toLowerCase();
+
+    const keywords = [
+      'limit harian',
+      'limit menit',
+      'silakan coba lagi besok',
+      'quota exceeded',
+      'rate limit',
+      '429',
+      'exhausted',
+      'resource has been exhausted',
+      'too many requests',
+      'rpm',
+      'rpd',
+    ];
+
+    return keywords.any((keyword) => normalized.contains(keyword));
+  }
+
+  String _aiQuotaDialogTitle(String message) {
+    final normalized = message.toLowerCase();
+
+    if (normalized.contains('limit harian') ||
+        normalized.contains('silakan coba lagi besok') ||
+        normalized.contains('rpd')) {
+      return 'Kuota Harian AI Tercapai';
+    }
+
+    if (normalized.contains('limit menit') ||
+        normalized.contains('rate limit') ||
+        normalized.contains('too many requests') ||
+        normalized.contains('rpm')) {
+      return 'Batas Permintaan AI Tercapai';
+    }
+
+    return 'Kuota AI Sedang Penuh';
+  }
+
+  String _aiQuotaDialogHint(String message) {
+    final normalized = message.toLowerCase();
+
+    if (normalized.contains('limit harian') ||
+        normalized.contains('silakan coba lagi besok') ||
+        normalized.contains('rpd')) {
+      return 'Silakan coba lagi besok saat kuota harian Gemini tersedia kembali.';
+    }
+
+    return 'Tunggu beberapa saat lalu coba generate lagi saat kuota tersedia.';
+  }
+
+  void _showAiQuotaDialog(
+    BuildContext context, {
+    required String message,
+  }) {
+    if (_isAiQuotaDialogVisible || !mounted) {
+      return;
+    }
+
+    _isAiQuotaDialogVisible = true;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: AppColors.warningLight,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: AppColors.warning,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                _aiQuotaDialogTitle(message),
+                style: Theme.of(dialogContext).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                style: Theme.of(dialogContext).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                      height: 1.5,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.schedule_rounded,
+                      size: 18,
+                      color: AppColors.warning,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _aiQuotaDialogHint(message),
+                        style: Theme.of(dialogContext)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                              height: 1.4,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text('Mengerti'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).then((_) {
+      _isAiQuotaDialogVisible = false;
+    });
   }
 
   void _showSnackBar(
