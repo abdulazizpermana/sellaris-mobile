@@ -112,6 +112,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               setState(() => _isHistoryLoading = false);
             }
 
+            if (_isAiQuotaError(state.message)) {
+              return;
+            }
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
@@ -584,6 +588,26 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     if (!confirmed || !mounted) return;
 
     context.read<ProductBloc>().add(ProductDeleteRequested(_product.id));
+  }
+
+  bool _isAiQuotaError(String message) {
+    final normalized = message.toLowerCase();
+
+    const keywords = [
+      'limit harian',
+      'limit menit',
+      'silakan coba lagi besok',
+      'quota exceeded',
+      'rate limit',
+      '429',
+      'exhausted',
+      'resource has been exhausted',
+      'too many requests',
+      'rpm',
+      'rpd',
+    ];
+
+    return keywords.any((keyword) => normalized.contains(keyword));
   }
 
   ProductModel? _findProductById(List<ProductModel> products, int id) {
