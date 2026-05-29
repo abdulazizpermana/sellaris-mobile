@@ -30,7 +30,9 @@ class NetworkException implements Exception {
 class ApiException implements Exception {
   final String message;
   final Map<String, dynamic>? errors;
+
   const ApiException(this.message, {this.errors});
+
   @override
   String toString() => message;
 }
@@ -40,8 +42,7 @@ class UnauthorizedException extends ApiException {
 }
 
 class ValidationException extends ApiException {
-  const ValidationException(super.message, Map<String, dynamic>? errors)
-      : super(errors: errors);
+  const ValidationException(super.message, {super.errors});
 }
 
 class ServerException extends ApiException {
@@ -236,7 +237,7 @@ class ApiClient {
         final first = errors.values.first;
         if (first is List && first.isNotEmpty) msg = first.first.toString();
       }
-      throw ValidationException(msg, errors);
+      throw ValidationException(msg, errors: errors);
     } else if (res.statusCode == 404) {
       final errors = body is Map<String, dynamic>
           ? body['errors'] as Map<String, dynamic>?

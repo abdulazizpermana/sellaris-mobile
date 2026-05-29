@@ -107,11 +107,12 @@ class ProductRepositoryImpl implements ProductRepository {
     );
 
     final responseBody = utf8.decode(response.bodyBytes);
-    final responseData = jsonDecode(responseBody);
     print('=== [HTTP STATUS CODE]: ${response.statusCode}');
     print('=== [HTTP RESPONSE BODY]: $responseBody');
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      final responseData = jsonDecode(utf8.decode(response.bodyBytes));
+
       if (responseData is Map<String, dynamic>) {
         throw ApiException(
           responseData['message']?.toString() ?? 'Terjadi kesalahan',
@@ -122,6 +123,7 @@ class ProductRepositoryImpl implements ProductRepository {
       throw const ApiException('Terjadi kesalahan');
     }
 
+    final responseData = jsonDecode(responseBody);
     return AiAllContent.fromJson(responseData['data']);
   }
 

@@ -348,8 +348,21 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   String _mapAiError(String message, Map<String, dynamic>? errors) {
     final n = message.toLowerCase();
 
-    if (n.contains('modul ai gagal merespons') ||
-        n.contains('limit harian tercapai')) {
+    const bypassKeywords = [
+      'modul ai gagal merespons',
+      'limit harian',
+      'limit menit',
+      'quota exceeded',
+      'rate limit',
+      '429',
+      'exhausted',
+      'resource has been exhausted',
+      'too many requests',
+      'rpm',
+      'rpd',
+    ];
+
+    if (bypassKeywords.any((keyword) => n.contains(keyword))) {
       return message;
     }
 
